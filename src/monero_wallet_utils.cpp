@@ -216,21 +216,9 @@ bool monero_wallet_utils::decoded_seed(
 			return false;
 		}
 		sec_seed_string = string_tools::pod_to_hex(sec_seed);
-	} else if (word_count == legacy_16B_seed_mnemonic_word_count) {
-		from_legacy16B_lw_seed = true;
-		legacy16B_secret_key legacy16B_sec_seed;
-		bool r = words_to_bytes(mnemonic_string__ref, legacy16B_sec_seed, mnemonic_language); // special 16 byte function
-		if (!r) {
-			retVals.did_error = true;
-			retVals.err_string = "Invalid 13-word mnemonic";
-			//
-			return false;
-		}
-		coerce_valid_sec_key_from(legacy16B_sec_seed, sec_seed);
-		sec_seed_string = string_tools::pod_to_hex(legacy16B_sec_seed); // <- NOTE: we are returning the _LEGACY_ seed as the string… this is important so we don't lose the fact it was 16B/13-word originally!
 	} else {
 		retVals.did_error = true;
-		retVals.err_string = "Please enter a 25 or 13-word secret mnemonic.";
+		retVals.err_string = "Please enter a 25 secret mnemonic.";
 		//
 		return false;
 	}
