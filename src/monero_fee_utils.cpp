@@ -251,7 +251,7 @@ uint64_t monero_fee_utils::estimate_fee(bool use_per_byte_fee, bool use_rct, int
 //
 uint64_t monero_fee_utils::calculate_fee_from_weight(uint64_t fee_per_b,uint64_t fee_per_o, uint64_t weight, int outputs, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
-	uint64_t fee = (weight * fee_per_b + outputs * fee_per_o) * fee_multiplier / 100;
+	uint64_t fee = (weight * fee_per_b + outputs * fee_per_o) * fee_multiplier / 95;
 	fee = (fee + fee_quantization_mask - 1) / fee_quantization_mask * fee_quantization_mask;
 	return fee;
 }
