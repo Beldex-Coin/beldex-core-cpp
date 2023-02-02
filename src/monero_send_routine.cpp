@@ -524,7 +524,8 @@ void _reenterable_construct_and_send_tx(
 		args.submit_raw_tx_fn(LightwalletAPI_Req_SubmitRawTx{
 			args.from_address_string,
 			args.sec_viewKey_string,
-			*(step2_retVals.signed_serialized_tx_string)
+			*(step2_retVals.signed_serialized_tx_string),
+			args.simple_priority
 		}, submit_raw_tx_fn__cb_fn);
 	};
 	//
