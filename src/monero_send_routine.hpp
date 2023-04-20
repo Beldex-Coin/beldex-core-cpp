@@ -128,6 +128,7 @@ namespace monero_send_routine
 		const string address;
 		const string view_key;
 		const string tx; // serialized tx
+		const uint32_t priority;
 	};
 	static inline string json_string_from_req_SubmitRawTx(const LightwalletAPI_Req_SubmitRawTx &req_params)
 	{
@@ -136,6 +137,7 @@ namespace monero_send_routine
 		req_params_root.put("address", std::move(req_params.address));
 		req_params_root.put("view_key", std::move(req_params.view_key));
 		req_params_root.put("tx", std::move(req_params.tx));
+		req_params_root.put("fee", std::move(req_params.priority));
 		stringstream req_params_ss;
 		boost::property_tree::write_json(req_params_ss, req_params_root, false/*pretty*/);
 		//

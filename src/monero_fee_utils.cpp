@@ -81,12 +81,19 @@ uint64_t monero_fee_utils::get_upper_transaction_weight_limit(
 }
 uint64_t monero_fee_utils::get_fee_percent(uint32_t priority, txtype type)
 {
-  static constexpr std::array<uint64_t, 4> percents{{100, 500, 2500, 12500}};
+  static constexpr std::array<uint64_t, 4> percents{{150, 500, 2500, 12500}};
 
   if (priority == 0) // 0 means no explicit priority was given, so use the wallet default
   {
     priority =1; // The flash default is unusable for this tx, so fall back to unimportant
   }
+  if (priority == 5)
+	{
+		uint64_t burn_pct = 0;
+		burn_pct = FLASH_BURN_TX_FEE_PERCENT_OLD;
+		return FLASH_MINER_TX_FEE_PERCENT + burn_pct ;
+	}
+	
   if (priority > percents.size())
     THROW_WALLET_EXCEPTION_IF(false,error::invalid_priority);
 
@@ -244,7 +251,7 @@ uint64_t monero_fee_utils::estimate_fee(bool use_per_byte_fee, bool use_rct, int
 //
 uint64_t monero_fee_utils::calculate_fee_from_weight(uint64_t fee_per_b,uint64_t fee_per_o, uint64_t weight, int outputs, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
-	uint64_t fee = (weight * fee_per_b + outputs * fee_per_o) * fee_multiplier / 100;
+	uint64_t fee = (weight * fee_per_b + outputs * fee_per_o) * fee_multiplier / 95;
 	fee = (fee + fee_quantization_mask - 1) / fee_quantization_mask * fee_quantization_mask;
 	return fee;
 }

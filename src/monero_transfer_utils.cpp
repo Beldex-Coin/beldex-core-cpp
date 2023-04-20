@@ -225,7 +225,7 @@ void monero_transfer_utils::send_step1__prepare_params_for_get_decoys(
 	}
 	const uint64_t base_fee = get_base_fee(fee_per_b); // in other words, fee_per_b
 	// const uint64_t fee_multiplier = get_fee_multiplier(simple_priority, default_priority(), get_fee_algorithm(use_fork_rules_fn), use_fork_rules_fn);
-	const uint64_t fee_multiplier = 150;
+	const uint64_t fee_multiplier = get_fee_percent(simple_priority,txtype::standard);
 	//
 	uint64_t attempt_at_min_fee;
 	if (prior_attempt_size_calcd_fee == none) {
@@ -458,6 +458,7 @@ void monero_transfer_utils::send_step2__try_create_transaction(
 		sec_viewKey_string, sec_spendKey_string,
 		to_address_strings, payment_id_string,
 		sending_amounts, change_amount, fee_amount,
+		simple_priority,
 		using_outs, mix_outs,
 		use_fork_rules_fn,
 		unlock_time,
@@ -502,6 +503,7 @@ void monero_transfer_utils::create_transaction(
 	const vector<uint64_t>& sending_amounts,
 	uint64_t change_amount,
 	uint64_t fee_amount,
+	uint32_t simple_priority,
 	const vector<SpendableOutput> &outputs,
 	vector<RandomAmountOutputs> &mix_outs, 
 	const std::vector<uint8_t> &extra,
@@ -732,9 +734,35 @@ void monero_transfer_utils::create_transaction(
 	beldex_construct_tx_params tx_params;
 	tx_params.hf_version = 17;
 	tx_params.tx_type = txtype::standard;
+
+	if(simple_priority == 5){
+		tx_params.burn_fixed   = FLASH_BURN_FIXED;
+    	tx_params.burn_percent = FLASH_BURN_TX_FEE_PERCENT_OLD;
+	}
+	uint64_t burn_fixed = 0, burn_percent = 0;
+	std::swap(burn_fixed, tx_params.burn_fixed);
+  	std::swap(burn_percent, tx_params.burn_percent);
+
+	bool burning = burn_fixed || burn_percent;
+	std::vector<uint8_t> extra_plus; // Copy and modified from input if modification needed
+  	const std::vector<uint8_t> &extra_flash = burning ? extra_plus : extra;
+	uint64_t fixed_fee = 0;
+	uint64_t fee_percent = get_fee_percent(simple_priority,txtype::standard);
+	if (burning)
+  	{
+		extra_plus = extra;
+		add_burned_amount_to_tx_extra(extra_plus, 0);
+		fixed_fee += burn_fixed;
+		// THROW_WALLET_EXCEPTION_IF(burn_percent > fee_percent, error::wallet_internal_error, "invalid burn fees: cannot burn more than the tx fee");
+  	}
+
+	if (burning)
+      tx_params.burn_fixed = burn_fixed + (fee_amount - burn_fixed) * burn_percent / fee_percent;
+
+
 	bool r = cryptonote::construct_tx_and_get_tx_key(
 		sender_account_keys, subaddresses,
-		sources, splitted_dsts, change_dst, extra,
+		sources, splitted_dsts, change_dst, extra_flash,
 		tx, unlock_time, tx_key, additional_tx_keys,
 		rct_config, nullptr,tx_params);
 
@@ -767,6 +795,7 @@ void monero_transfer_utils::convenience__create_transaction(
 	const vector<uint64_t>& sending_amounts,
 	uint64_t change_amount,
 	uint64_t fee_amount,
+	uint32_t simple_priority,
 	const vector<SpendableOutput> &outputs,
 	vector<RandomAmountOutputs> &mix_outs,
 	use_fork_rules_fn_type use_fork_rules_fn,
@@ -845,6 +874,7 @@ void monero_transfer_utils::convenience__create_transaction(
 		account_keys, subaddr_account_idx, subaddresses,
 		to_addr_infos,
 		sending_amounts, change_amount, fee_amount,
+		simple_priority,
 		outputs, mix_outs,
 		extra, // TODO: move to after address
 		use_fork_rules_fn,
