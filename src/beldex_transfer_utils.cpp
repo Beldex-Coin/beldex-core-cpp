@@ -1,5 +1,5 @@
 //
-//  monero_transfer_utils.cpp
+//  beldex_transfer_utils.cpp
 //  Copyright © 2018 MyMonero. All rights reserved.
 //
 //  All rights reserved.
@@ -32,11 +32,11 @@
 //
 //
 #include <boost/optional.hpp>
-#include "monero_transfer_utils.hpp"
+#include "beldex_transfer_utils.hpp"
 #include "wallet_errors.h"
 #include "epee/string_tools.h"
-#include "monero_paymentID_utils.hpp"
-#include "monero_key_image_utils.hpp"
+#include "beldex_paymentID_utils.hpp"
+#include "beldex_key_image_utils.hpp"
 //
 using namespace std;
 using namespace crypto;
@@ -45,10 +45,10 @@ using namespace boost;
 using namespace epee;
 using namespace cryptonote;
 using namespace tools; // for error::
-using namespace monero_transfer_utils;
-using namespace monero_fork_rules;
-using namespace monero_fee_utils;
-using namespace monero_key_image_utils; // for API response parsing
+using namespace beldex_transfer_utils;
+using namespace beldex_fork_rules;
+using namespace beldex_fee_utils;
+using namespace beldex_key_image_utils; // for API response parsing
 
 namespace {
 CreateTransactionErrorCode _add_pid_to_tx_extra(
@@ -58,7 +58,7 @@ CreateTransactionErrorCode _add_pid_to_tx_extra(
 	bool r = false;
 	if (payment_id_string != none && payment_id_string->size() > 0) {
 		crypto::hash payment_id;
-		r = monero_paymentID_utils::parse_long_payment_id(*payment_id_string, payment_id);
+		r = beldex_paymentID_utils::parse_long_payment_id(*payment_id_string, payment_id);
 		if (r) {
 			std::string extra_nonce;
 			cryptonote::set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id);
@@ -68,7 +68,7 @@ CreateTransactionErrorCode _add_pid_to_tx_extra(
 			}
 		} else {
 			crypto::hash8 payment_id8;
-			r = monero_paymentID_utils::parse_short_payment_id(*payment_id_string, payment_id8);
+			r = beldex_paymentID_utils::parse_short_payment_id(*payment_id_string, payment_id8);
 			if (!r) { // a PID has been specified by the user but the last resort in validating it fails; error
 				return invalidPID;
 			}
@@ -182,7 +182,7 @@ namespace
 //
 //
 // Decomposed Send procedure
-void monero_transfer_utils::send_step1__prepare_params_for_get_decoys(
+void beldex_transfer_utils::send_step1__prepare_params_for_get_decoys(
 	Send_Step1_RetVals &retVals,
 	//
 	const boost::optional<string>& payment_id_string,
@@ -210,7 +210,7 @@ void monero_transfer_utils::send_step1__prepare_params_for_get_decoys(
  		}
 	}
 	//
-	uint32_t fake_outs_count = monero_fork_rules::fixed_mixinsize();
+	uint32_t fake_outs_count = beldex_fork_rules::fixed_mixinsize();
 	retVals.mixin = fake_outs_count;
 	//
 	bool use_rct = true;
@@ -273,7 +273,7 @@ void monero_transfer_utils::send_step1__prepare_params_for_get_decoys(
 			// out.rct is set by the server
 			continue; // skip rct outputs if not creating rct tx
 		}
-		if (out.amount < monero_fork_rules::dust_threshold()) { // amount is dusty..
+		if (out.amount < beldex_fork_rules::dust_threshold()) { // amount is dusty..
 			if (out.rct == none || (*out.rct).empty()) {
 //				cout << "Found a dusty but unmixable (non-rct) output... skipping it!" << endl;
 				continue;
@@ -361,7 +361,7 @@ void monero_transfer_utils::send_step1__prepare_params_for_get_decoys(
 }
 //
 //
-void monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
+void beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
 	Tie_Outs_to_Mix_Outs_RetVals &retVals,
 	//
 	const vector<SpendableOutput> &using_outs,
@@ -428,7 +428,7 @@ void monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_futur
 //
 //
 //
-void monero_transfer_utils::send_step2__try_create_transaction(
+void beldex_transfer_utils::send_step2__try_create_transaction(
 	Send_Step2_RetVals &retVals,
 	//
 	const string &from_address_string,
@@ -452,7 +452,7 @@ void monero_transfer_utils::send_step2__try_create_transaction(
 	retVals = {};
 	//
 	Convenience_TransactionConstruction_RetVals create_tx__retVals;
-	monero_transfer_utils::convenience__create_transaction(
+	beldex_transfer_utils::convenience__create_transaction(
 		create_tx__retVals,
 		from_address_string,
 		sec_viewKey_string, sec_spendKey_string,
@@ -494,7 +494,7 @@ void monero_transfer_utils::send_step2__try_create_transaction(
 //
 // Underlying implementations to mimic historical JS-land create_transaction / construct_tx impls
 //
-void monero_transfer_utils::create_transaction(
+void beldex_transfer_utils::create_transaction(
 	TransactionConstruction_RetVals &retVals,
 	const account_keys& sender_account_keys, // this will reference a particular hw::device
 	const uint32_t subaddr_account_idx,
@@ -785,7 +785,7 @@ void monero_transfer_utils::create_transaction(
 	retVals.additional_tx_keys = additional_tx_keys;
 }
 //
-void monero_transfer_utils::convenience__create_transaction(
+void beldex_transfer_utils::convenience__create_transaction(
 	Convenience_TransactionConstruction_RetVals &retVals,
 	const string &from_address_string,
 	const string &sec_viewKey_string,

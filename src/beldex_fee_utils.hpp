@@ -1,5 +1,5 @@
 //
-//  monero_fee_utils.hpp
+//  beldex_fee_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,8 +29,8 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_fee_utils_hpp
-#define monero_fee_utils_hpp
+#ifndef beldex_fee_utils_hpp
+#define beldex_fee_utils_hpp
 //
 #include <boost/optional.hpp>
 //
@@ -40,14 +40,14 @@
 #include "cryptonote_basic.h"
 #include "cryptonote_format_utils.h"
 //
-#include "monero_fork_rules.hpp"
+#include "beldex_fork_rules.hpp"
 //
-namespace monero_fee_utils
+namespace beldex_fee_utils
 {
 	using namespace std;
 	using namespace boost;
 	using namespace cryptonote;
-	using namespace monero_fork_rules;
+	using namespace beldex_fork_rules;
 	using namespace crypto;
 	//
 	uint32_t default_priority();
@@ -74,9 +74,9 @@ namespace monero_fee_utils
 	uint64_t estimated_tx_network_fee( // convenience function for size + calc
 		uint64_t fee_per_b,
 		uint64_t fee_per_o,
-		uint32_t priority, // when priority=0, falls back to monero_fee_utils::default_priority()
+		uint32_t priority, // when priority=0, falls back to beldex_fee_utils::default_priority()
 		use_fork_rules_fn_type use_fork_rules_fn // this is extracted to a function so that implementations can optionally query the daemon (although this presently implies that such a call remains blocking)
 	);
 }
 
-#endif /* monero_fee_utils_hpp */
+#endif /* beldex_fee_utils_hpp */

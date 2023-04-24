@@ -47,7 +47,7 @@ using namespace boost;
 #include "cryptonote_format_utils.h"
 #include <boost/property_tree/json_parser.hpp>
 //
-#include "monero_fork_rules.hpp"
+#include "beldex_fork_rules.hpp"
 //
 #include "serial_bridge_utils.hpp"
 using namespace serial_bridge_utils;
@@ -55,11 +55,11 @@ using namespace serial_bridge_utils;
 // Shared code
 //
 // Test suites
- #include "../src/monero_address_utils.hpp"
+ #include "../src/beldex_address_utils.hpp"
 BOOST_AUTO_TEST_CASE(decodeAddress)
 {
 	string address = "43zxvpcj5Xv9SEkNXbMCG7LPQStHMpFCQCmkmR4u5nzjWwq5Xkv5VmGgYEsHXg4ja2FGRD5wMWbBVMijDTqmmVqm93wHGkg";
-	auto result = monero::address_utils::decodedAddress(address, cryptonote::MAINNET);
+	auto result = beldex::address_utils::decodedAddress(address, cryptonote::MAINNET);
 	if (result.err_string) {
 		std::cout << *result.err_string << endl;
 		BOOST_REQUIRE(!result.err_string);
@@ -72,15 +72,15 @@ BOOST_AUTO_TEST_CASE(decodeAddress)
 }
 //
 //
-#include "../src/monero_paymentID_utils.hpp"
+#include "../src/beldex_paymentID_utils.hpp"
 BOOST_AUTO_TEST_CASE(paymentID)
 {
-	string paymentID_string = monero_paymentID_utils::new_short_plain_paymentID_string();
+	string paymentID_string = beldex_paymentID_utils::new_short_plain_paymentID_string();
 	std::cout << "paymentID: paymentID_string: " << paymentID_string << std::endl;
 	BOOST_REQUIRE_MESSAGE(paymentID_string.size() == 16, "Expected payment ID to be of length 16");
 	//
 	crypto::hash parsed__payment_id;
-	bool didParse = monero_paymentID_utils::parse_payment_id(paymentID_string, parsed__payment_id);
+	bool didParse = beldex_paymentID_utils::parse_payment_id(paymentID_string, parsed__payment_id);
 	BOOST_REQUIRE_MESSAGE(didParse, "Couldn't parse payment ID");
 	std::string parsed__payment_id_as_string = epee::string_tools::pod_to_hex(parsed__payment_id);
 	BOOST_REQUIRE_MESSAGE(paymentID_string.compare(parsed__payment_id_as_string), "Expected parsed payment ID to equal original payment ID");
@@ -88,20 +88,20 @@ BOOST_AUTO_TEST_CASE(paymentID)
 }
 //
 //
-#include "../src/monero_key_image_utils.hpp"
+#include "../src/beldex_key_image_utils.hpp"
 BOOST_AUTO_TEST_CASE(keyImage)
 {
 }
 //
 //
-#include "../src/monero_wallet_utils.hpp"
+#include "../src/beldex_wallet_utils.hpp"
 BOOST_AUTO_TEST_CASE(wallet)
 {
 }
 //
 //
-#include "../src/monero_transfer_utils.hpp"
-#include "../src/monero_fork_rules.hpp"
+#include "../src/beldex_transfer_utils.hpp"
+#include "../src/beldex_fork_rules.hpp"
 
 
 string pre_step2__unspent_outs_json = "{\"unspent_outs\": [{\"amount\": \"100000000\", \"public_key\": \"8b1e3ec8a3828f09845e3aec93b19c6788458df39b5045472739b896d7cb7c1b\", \"index\": 0, \"global_index\": 14205118, \"rct\": \"b746bda9aee02e971460efc3f9fe4243be305d724d2fb0ebbdc5f8abf31cdb909668123ad52a68f8\", \"tx_id\": 8225042, \"tx_hash\": \"ac8c1d9d89a289c7b2210c7cf94c5b03435b21e238557c2993246c1743c7cd5b\", \"tx_pub_key\": \"edc238c96cb30a739f56126ae962ac81be43e9aaa8a86313dec3d8ecfb36b7ef\", \"tx_prefix_hash\": \"293d3c03fdffa4e93600e51025287b37f1dc063a0cf22960d28f4ecf542aa516\", \"spend_key_images\": [\"d2d3db0a97ff7cde6774d2e8290559bf3e186e06783cb1ba39890bd31b0305ea\", \"44a97c766f23f1a471138fd1d5561b359f59c767498f829000cc8a17d6488abb\", \"73503ecb8c88eb6803df4f207901f9f57e847971d445bc232df13bb120c462d5\", \"5b6f0c36b6553ee3274037a37aaa7abdf4ad72900ce5ff588fe725652ab98665\", \"1d5447f30b261c8943d92289c80bb00973d363282fef06c086b2b660e88effae\", \"0b4b2e429aa59539de3ef6c55888307c6a6f6ea445c5f8e525a64a2f650ce5db\", \"0ff0bbaa87087449ae55d5df3a175050767c34b0186d53f8e64609b5af32d023\", \"070b01df752d5d9e4ffe54d587d3b63abcb3f7e73cec50047152c209f93372f7\", \"fddc4239b18fbe4232bec937ef5c1b399e7571ad720d6f527fccfe5c81d66c44\", \"0ecfa5b14b41473e368fc163f9b2e4f0118685d075edc01737bc75595cb20949\", \"8bbdf2254d173d77c1557b4d58e287eaca519d5d93a3b000062ebb423b1b59f5\", \"9ebc5f6db9c9d38ac3996ca98b7494dc3ab6c704134a3db845e54c54bc3510e9\", \"d8d7255ca9052b900bd738417b3ea49d0702c4865279ad888c4c4220ecd44f90\", \"5f57135e7f8c79b40c9d20eecd508409f594898c7369e205fed1e62a2be0fe6d\", \"1c8602ffbc7f1836425911d52c79a56f280c82c9ab9464a78bd9d1daa5a70ab3\"], \"height\": 2007212}]}";
@@ -112,11 +112,11 @@ string pre_step2__mix_outs_from_server_json = "{\"mix_outs\": [{\"amount\": \"0\
 BOOST_AUTO_TEST_CASE(transfers__fee)
 {
 	uint8_t fork_version = 16;
-	auto use_fork_rules_fn = monero_fork_rules::make_use_fork_rules_fn(fork_version);
+	auto use_fork_rules_fn = beldex_fork_rules::make_use_fork_rules_fn(fork_version);
 	uint64_t fee_per_b = 215;
 	uint64_t fee_per_o = 100000;
 	uint32_t priority = 2;
-	uint64_t est_fee = monero_fee_utils::estimated_tx_network_fee(fee_per_b,fee_per_o, priority, use_fork_rules_fn);
+	uint64_t est_fee = beldex_fee_utils::estimated_tx_network_fee(fee_per_b,fee_per_o, priority, use_fork_rules_fn);
 	std::cout << "transfers__fee: est_fee with fee_per_b " << fee_per_b << ": " << fee_per_o << ": " << est_fee << std::endl;
 	BOOST_REQUIRE(est_fee > 0);
 }
@@ -129,11 +129,11 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	ss << pre_step2__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	//
-	vector<monero_transfer_utils::SpendableOutput> unspent_outs;
+	vector<beldex_transfer_utils::SpendableOutput> unspent_outs;
 	for(boost::property_tree::ptree::value_type &output_desc : pt.get_child("unspent_outs"))
 	{
 		assert(output_desc.first.empty()); // array elements have no names
-		monero_transfer_utils::SpendableOutput out{};
+		beldex_transfer_utils::SpendableOutput out{};
 		out.amount = stoull(output_desc.second.get<string>("amount"));
 		out.public_key = output_desc.second.get<string>("public_key");
 		out.rct = output_desc.second.get_optional<string>("rct");
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		unspent_outs.push_back(std::move(out));
 	}
 	//
-	vector<monero_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
+	vector<beldex_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
 	{
 		boost::property_tree::ptree pt;
 		stringstream ss;
@@ -157,12 +157,12 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		for(boost::property_tree::ptree::value_type &mix_out_desc : pt.get_child("mix_outs"))
 		{
 			assert(mix_out_desc.first.empty()); // array elements have no names
-			auto amountAndOuts = monero_transfer_utils::RandomAmountOutputs{};
+			auto amountAndOuts = beldex_transfer_utils::RandomAmountOutputs{};
 			amountAndOuts.amount = stoull(mix_out_desc.second.get<string>("amount"));
 			for(boost::property_tree::ptree::value_type &mix_out_output_desc : mix_out_desc.second.get_child("outputs"))
 			{
 				assert(mix_out_output_desc.first.empty()); // array elements have no names
-				auto amountOutput = monero_transfer_utils::RandomAmountOutput{};
+				auto amountOutput = beldex_transfer_utils::RandomAmountOutput{};
 				amountOutput.global_index = stoull(mix_out_output_desc.second.get<string>("global_index"));
 				amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 				amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
@@ -174,22 +174,22 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	assert(unspent_outs.size() == mix_outs_from_server.size());
 	// *** END SETUP ***
 	//
-	monero_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
-	monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
+	beldex_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
+	beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
 		tie_outs_to_mix_outs_retVals,
 		unspent_outs,
 		mix_outs_from_server,
 		boost::none/*prior_attempt_unspent_outs_to_mix_outs*/
 	);
 	//
-	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == monero_transfer_utils::noError, "expected no error");
+	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == beldex_transfer_utils::noError, "expected no error");
 	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.mix_outs.size() == mix_outs_from_server.size(), "expected resulting mix outs to use for step 2 to be same as server response");
 	//
 	for (size_t i = 0; i < unspent_outs.size(); ++i)
 	{
-		const vector<monero_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
-		const monero_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
-		const vector<monero_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
+		const beldex_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
 		//
 		BOOST_REQUIRE_MESSAGE(mix_outs.size() == tied_mix_outs.size(), "mix outs from server size does not match tied mix outs size");
 		for (size_t j = 0; j < mix_outs.size(); ++j)
@@ -214,11 +214,11 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	ss << pre_step2__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	//
-	vector<monero_transfer_utils::SpendableOutput> unspent_outs;
+	vector<beldex_transfer_utils::SpendableOutput> unspent_outs;
 	for(boost::property_tree::ptree::value_type &output_desc : pt.get_child("unspent_outs"))
 	{
 		assert(output_desc.first.empty()); // array elements have no names
-		monero_transfer_utils::SpendableOutput out{};
+		beldex_transfer_utils::SpendableOutput out{};
 		out.amount = stoull(output_desc.second.get<string>("amount"));
 		out.public_key = output_desc.second.get<string>("public_key");
 		out.rct = output_desc.second.get_optional<string>("rct");
@@ -232,8 +232,8 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		unspent_outs.push_back(std::move(out));
 	}
 	//
-	std::vector<monero_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
-	monero_transfer_utils::SpendableOutputToRandomAmountOutputs prior_attempt_unspent_outs_to_mix_outs;
+	std::vector<beldex_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
+	beldex_transfer_utils::SpendableOutputToRandomAmountOutputs prior_attempt_unspent_outs_to_mix_outs;
 	size_t index_of_unspent_out_used_in_prior_attempt = 0;
 	{
 		boost::property_tree::ptree pt;
@@ -245,12 +245,12 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		for(boost::property_tree::ptree::value_type &mix_out_desc : pt.get_child("mix_outs"))
 		{
 			assert(mix_out_desc.first.empty()); // array elements have no names
-			auto amountAndOuts = monero_transfer_utils::RandomAmountOutputs{};
+			auto amountAndOuts = beldex_transfer_utils::RandomAmountOutputs{};
 			amountAndOuts.amount = stoull(mix_out_desc.second.get<string>("amount"));
 			for(boost::property_tree::ptree::value_type &mix_out_output_desc : mix_out_desc.second.get_child("outputs"))
 			{
 				assert(mix_out_output_desc.first.empty()); // array elements have no names
-				auto amountOutput = monero_transfer_utils::RandomAmountOutput{};
+				auto amountOutput = beldex_transfer_utils::RandomAmountOutput{};
 				amountOutput.global_index = stoull(mix_out_output_desc.second.get<string>("global_index"));
 				amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 				amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
@@ -271,24 +271,24 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	assert(unspent_outs.size() == (1 + mix_outs_from_server.size()));
 	// *** END SETUP ***
 	//
-	monero_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
-	monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
+	beldex_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
+	beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
 		tie_outs_to_mix_outs_retVals,
 		unspent_outs,
 		mix_outs_from_server,
 		prior_attempt_unspent_outs_to_mix_outs
 	);
 	//
-	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == monero_transfer_utils::noError, "expected no error");
+	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == beldex_transfer_utils::noError, "expected no error");
 	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.mix_outs.size() == unspent_outs.size(), "expected resulting mix outs to use for step 2 to be same as unspent_outs");
 	//
 	for (size_t i = 0; i < unspent_outs.size(); ++i)
 	{
-		const vector<monero_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
-		const monero_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
-		const vector<monero_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
+		const beldex_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
 		//
-		vector<monero_transfer_utils::RandomAmountOutput> prior_tied_mix_outs;
+		vector<beldex_transfer_utils::RandomAmountOutput> prior_tied_mix_outs;
 		if (i == index_of_unspent_out_used_in_prior_attempt)
 			prior_tied_mix_outs = prior_attempt_unspent_outs_to_mix_outs[unspent_out.public_key];
 		//
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 			}
 			else
 			{
-				monero_transfer_utils::RandomAmountOutput server_mix_out = mix_outs_from_server[i - 1].outputs[j];
+				beldex_transfer_utils::RandomAmountOutput server_mix_out = mix_outs_from_server[i - 1].outputs[j];
 				BOOST_REQUIRE_MESSAGE(mix_outs[j].global_index == server_mix_out.global_index, "mix outs to mix outs from server did not tie as expected: global index");
 				BOOST_REQUIRE_MESSAGE(mix_outs[j].public_key == server_mix_out.public_key, "mix outs to mix outs from server did not tie as expected: public key");
 				BOOST_REQUIRE_MESSAGE(mix_outs[j].rct == server_mix_out.rct, "mix outs to mix outs from server did not tie as expected: rct");
@@ -344,7 +344,7 @@ string DG_presweep__rand_outs_json = "{\"mix_outs\": [{\"amount\": \"0\", \"outp
 BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -398,8 +398,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			boost::property_tree::ptree ret_tree;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
-				if ((CreateTransactionErrorCode)*err_code == monero_transfer_utils::needMoreMoneyThanFound) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
+				if ((CreateTransactionErrorCode)*err_code == beldex_transfer_utils::needMoreMoneyThanFound) {
 					boost::optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
 					BOOST_REQUIRE(spendable_balance_string != none);
 					BOOST_REQUIRE((*spendable_balance_string).size() > 0);
@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -567,7 +567,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 BOOST_AUTO_TEST_CASE(bridge__transfers__send__amountWOnlyDusty)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -610,7 +610,7 @@ string DG_postsweep__rand_outs_json = "{\"mix_outs\": [{\"amount\": \"0\", \"out
 BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -663,8 +663,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			boost::property_tree::ptree ret_tree;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
-				if ((CreateTransactionErrorCode)*err_code == monero_transfer_utils::needMoreMoneyThanFound) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
+				if ((CreateTransactionErrorCode)*err_code == beldex_transfer_utils::needMoreMoneyThanFound) {
 					boost::optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
 					BOOST_REQUIRE(spendable_balance_string != none);
 					BOOST_REQUIRE((*spendable_balance_string).size() > 0);
@@ -747,7 +747,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -798,7 +798,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -1233,7 +1233,7 @@ string OM_stagenet__rand_outs_json = "{\"mix_outs\": [{\"amount\": \"0\", \"outp
 BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -1287,8 +1287,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			boost::property_tree::ptree ret_tree;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
-				if ((CreateTransactionErrorCode)*err_code == monero_transfer_utils::needMoreMoneyThanFound) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
+				if ((CreateTransactionErrorCode)*err_code == beldex_transfer_utils::needMoreMoneyThanFound) {
 					boost::optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
 					BOOST_REQUIRE(spendable_balance_string != none);
 					BOOST_REQUIRE((*spendable_balance_string).size() > 0);
@@ -1371,7 +1371,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -1420,7 +1420,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
 			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -1457,7 +1457,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 //BOOST_AUTO_TEST_CASE(emscr_bridge__send_funds__sweep)
 //{
 //	using namespace emscr_async_bridge;
-//	using namespace monero_transfer_utils;
+//	using namespace beldex_transfer_utils;
 //	//
 //	boost::property_tree::ptree root;
 //	root.put("task_id", "some guid");

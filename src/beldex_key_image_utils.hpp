@@ -1,5 +1,5 @@
 //
-//  monero_key_image_utils.hpp
+//  beldex_key_image_utils.hpp
 //  MyMonero
 //
 //  Created by Paul Shapiro on 1/2/18.
@@ -32,8 +32,8 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_key_image_utils_hpp
-#define monero_key_image_utils_hpp
+#ifndef beldex_key_image_utils_hpp
+#define beldex_key_image_utils_hpp
 //
 #include "crypto.h"
 #include "cryptonote_basic.h"
@@ -41,7 +41,7 @@
 using namespace tools;
 #include "tools__ret_vals.hpp"
 //
-namespace monero_key_image_utils
+namespace beldex_key_image_utils
 {
 	struct KeyImageRetVals: RetVals_base
 	{
@@ -57,4 +57,4 @@ namespace monero_key_image_utils
 	);
 }
 //
-#endif /* monero_key_image_utils_hpp */
+#endif /* beldex_key_image_utils_hpp */

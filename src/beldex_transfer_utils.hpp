@@ -1,5 +1,5 @@
 //
-//  monero_transfer_utils.hpp
+//  beldex_transfer_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,8 +29,8 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_transfer_utils_hpp
-#define monero_transfer_utils_hpp
+#ifndef beldex_transfer_utils_hpp
+#define beldex_transfer_utils_hpp
 //
 #include <boost/optional.hpp>
 //
@@ -42,18 +42,18 @@
 #include "cryptonote_tx_utils.h"
 #include "ringct/rctSigs.h"
 //
-#include "monero_fork_rules.hpp"
-#include "monero_fee_utils.hpp"
+#include "beldex_fork_rules.hpp"
+#include "beldex_fee_utils.hpp"
 //
 using namespace tools;
 #include "tools__ret_vals.hpp"
 //
-namespace monero_transfer_utils
+namespace beldex_transfer_utils
 {
 	using namespace std;
 	using namespace boost;
 	using namespace cryptonote;
-	using namespace monero_fork_rules;
+	using namespace beldex_fork_rules;
 	using namespace crypto;
 	
 	// Types - Arguments
@@ -166,7 +166,7 @@ namespace monero_transfer_utils
         return "Unknown error";
 	}
 	//
-	// See monero_send_routine for actual app-lvl interface used by lightwallets 
+	// See beldex_send_routine for actual app-lvl interface used by lightwallets 
 	//
 	//
 	// Send_Step* functions procedure for integrators:
@@ -322,4 +322,4 @@ namespace monero_transfer_utils
 	);
 }
 
-#endif /* monero_transfer_utils_hpp */
+#endif /* beldex_transfer_utils_hpp */
