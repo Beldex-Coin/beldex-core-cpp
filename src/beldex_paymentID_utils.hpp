@@ -1,5 +1,5 @@
 //
-//  monero_address_utils.hpp
+//  beldex_paymentID_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,34 +29,35 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#include <string>
-#include <boost/optional.hpp>
-//
-#include "cryptonote_config.h"
-#include "cryptonote_basic/account.h"
 
-#include "tools__ret_vals.hpp"
-//
-namespace monero
+#ifndef beldex_paymentID_utils_hpp
+#define beldex_paymentID_utils_hpp
+
+#include <stdio.h>
+#include <boost/optional.hpp>
+#include "crypto.h"
+
+namespace beldex_paymentID_utils
 {
-	namespace address_utils
-	{
-		using namespace std;
-		using namespace boost;
-		using namespace cryptonote;
-		
-		struct DecodedAddress_RetVals: tools::RetVals_base
-		{
-			boost::optional<string> pub_viewKey_string;
-			boost::optional<string> pub_spendKey_string;
-			bool isSubaddress;
-			boost::optional<string> paymentID_string;
-		};
-		//
-		DecodedAddress_RetVals decodedAddress(const string &addressString, network_type nettype);
-		bool isSubAddress(const string &addressString, network_type nettype);
-		bool isIntegratedAddress(const string &addressString, network_type nettype);
-		//
-		string new_integratedAddrFromStdAddr(const string &std_address_string, const string &short_paymentID, cryptonote::network_type nettype);
-	}
+	using namespace std;
+	using namespace boost;
+	//
+	// Constants
+	static const size_t payment_id_length__short = 16;
+	static const size_t payment_id_length__long = 64;
+	//
+	// Generating Payment IDs
+	crypto::hash8 new_short_plain_paymentID();
+	string new_short_plain_paymentID_string();
+	//
+	// Parsing and Detecting Payment IDs
+	bool parse_long_payment_id(const string& payment_id_str, crypto::hash& payment_id);
+	bool parse_short_payment_id(const string& payment_id_str, crypto::hash8& payment_id);
+	bool parse_payment_id(const string& payment_id_str, crypto::hash& payment_id);
+	//
+	// Validating payment IDs
+	bool is_a_valid_or_not_a_payment_id_of_length(const string &str, size_t length);
+	bool is_a_valid_or_not_a_payment_id(boost::optional<string> str); // this checks 16 and then 64 len strs
 }
+
+#endif /* beldex_paymentID_utils_hpp */

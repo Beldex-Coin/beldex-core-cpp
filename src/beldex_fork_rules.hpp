@@ -1,5 +1,5 @@
 //
-//  monero_fork_rules.hpp
+//  beldex_fork_rules.hpp
 //  MyMonero
 //
 //  Created by Paul Shapiro on 1/9/18.
@@ -33,13 +33,13 @@
 //
 //
 
-#ifndef monero_fork_rules_hpp
-#define monero_fork_rules_hpp
+#ifndef beldex_fork_rules_hpp
+#define beldex_fork_rules_hpp
 
 #include <functional>
 #include <stdint.h>
 
-namespace monero_fork_rules
+namespace beldex_fork_rules
 {
 	typedef std::function<bool(uint8_t/*version*/, int64_t/*early_blocks*/)> use_fork_rules_fn_type;
 	//
@@ -63,4 +63,4 @@ namespace monero_fork_rules
 	uint64_t dust_threshold();
 }
 
-#endif /* monero_fork_rules */
+#endif /* beldex_fork_rules */

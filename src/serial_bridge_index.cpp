@@ -37,12 +37,12 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 //
-#include "monero_fork_rules.hpp"
-#include "monero_transfer_utils.hpp"
-#include "monero_address_utils.hpp" // TODO: split this/these out into a different namespaces or file so this file can scale (leave file for shared utils)
-#include "monero_paymentID_utils.hpp"
-#include "monero_wallet_utils.hpp"
-#include "monero_key_image_utils.hpp"
+#include "beldex_fork_rules.hpp"
+#include "beldex_transfer_utils.hpp"
+#include "beldex_address_utils.hpp" // TODO: split this/these out into a different namespaces or file so this file can scale (leave file for shared utils)
+#include "beldex_paymentID_utils.hpp"
+#include "beldex_wallet_utils.hpp"
+#include "beldex_key_image_utils.hpp"
 #include "wallet_errors.h"
 #include "epee/string_tools.h"
 #include "ringct/rctSigs.h"
@@ -52,8 +52,8 @@
 using namespace std;
 using namespace boost;
 using namespace cryptonote;
-using namespace monero_transfer_utils;
-using namespace monero_fork_rules;
+using namespace beldex_transfer_utils;
+using namespace beldex_fork_rules;
 //
 using namespace serial_bridge;
 using namespace serial_bridge_utils;
@@ -63,7 +63,7 @@ using namespace serial_bridge_utils;
 //
 string serial_bridge::decode_address(const string address, const string nettype)
 {
-	auto retVals = monero::address_utils::decodedAddress(address, nettype_from_string(nettype));
+	auto retVals = beldex::address_utils::decodedAddress(address, nettype_from_string(nettype));
 	if (retVals.did_error) {
 		return error_ret_json_from_message(*(retVals.err_string));
 	}
@@ -79,25 +79,25 @@ string serial_bridge::decode_address(const string address, const string nettype)
 }
 bool serial_bridge::is_subaddress(const string address, const string nettype)
 {
-	return monero::address_utils::isSubAddress(address, nettype_from_string(nettype));
+	return beldex::address_utils::isSubAddress(address, nettype_from_string(nettype));
 }
 bool serial_bridge::is_integrated_address(const string address, const string nettype)
 {
-	return monero::address_utils::isIntegratedAddress(address, nettype_from_string(nettype));
+	return beldex::address_utils::isIntegratedAddress(address, nettype_from_string(nettype));
 }
 string serial_bridge::new_integrated_address(const string address, const string paymentId, const string nettype)
 {
-	return monero::address_utils::new_integratedAddrFromStdAddr(address, paymentId, nettype_from_string(nettype));
+	return beldex::address_utils::new_integratedAddrFromStdAddr(address, paymentId, nettype_from_string(nettype));
 }
 string serial_bridge::new_payment_id()
 {
-	return monero_paymentID_utils::new_short_plain_paymentID_string();
+	return beldex_paymentID_utils::new_short_plain_paymentID_string();
 }
 
 string serial_bridge::newly_created_wallet(const string localeLanguageCode, const string nettype)
 {
-	monero_wallet_utils::WalletDescriptionRetVals retVals;
-	bool r = monero_wallet_utils::convenience__new_wallet_with_language_code(
+	beldex_wallet_utils::WalletDescriptionRetVals retVals;
+	bool r = beldex_wallet_utils::convenience__new_wallet_with_language_code(
 		localeLanguageCode,
 		retVals,
 		nettype_from_string(nettype)
@@ -121,12 +121,12 @@ string serial_bridge::newly_created_wallet(const string localeLanguageCode, cons
 }
 bool serial_bridge::are_equal_mnemonics(const string mnemonicA, const string mnemonicB)
 {
-	return monero_wallet_utils::are_equal_mnemonics(mnemonicA, mnemonicB);
+	return beldex_wallet_utils::are_equal_mnemonics(mnemonicA, mnemonicB);
 }
 string serial_bridge::address_and_keys_from_seed(const string seed, const string nettype)
 {
-	monero_wallet_utils::ComponentsFromSeed_RetVals retVals;
-	bool r = monero_wallet_utils::address_and_keys_from_seed(
+	beldex_wallet_utils::ComponentsFromSeed_RetVals retVals;
+	bool r = beldex_wallet_utils::address_and_keys_from_seed(
 		seed,
 		nettype_from_string(nettype),
 		retVals
@@ -147,7 +147,7 @@ string serial_bridge::address_and_keys_from_seed(const string seed, const string
 }
 string serial_bridge::mnemonic_from_seed(const string seed, const string wordsetName)
 {
-	monero_wallet_utils::SeedDecodedMnemonic_RetVals retVals = monero_wallet_utils::mnemonic_string_from_seed_hex_string(
+	beldex_wallet_utils::SeedDecodedMnemonic_RetVals retVals = beldex_wallet_utils::mnemonic_string_from_seed_hex_string(
 		seed,
 		wordsetName
 	);
@@ -161,8 +161,8 @@ string serial_bridge::mnemonic_from_seed(const string seed, const string wordset
 }
 string serial_bridge::seed_and_keys_from_mnemonic(const string mnemonic, const string nettype)
 {
-	monero_wallet_utils::WalletDescriptionRetVals retVals;
-	bool r = monero_wallet_utils::wallet_with(
+	beldex_wallet_utils::WalletDescriptionRetVals retVals;
+	bool r = beldex_wallet_utils::wallet_with(
 		mnemonic,
 		retVals,
 		nettype_from_string(nettype)
@@ -171,7 +171,7 @@ string serial_bridge::seed_and_keys_from_mnemonic(const string mnemonic, const s
 	if (!r) {
 		return error_ret_json_from_message(*retVals.err_string);
 	}
-	monero_wallet_utils::WalletDescription walletDescription = *(retVals.optl__desc);
+	beldex_wallet_utils::WalletDescription walletDescription = *(retVals.optl__desc);
 	boost::property_tree::ptree root;
 	root.put("seed", (*(retVals.optl__desc)).sec_seed_string);
 	root.put("mnemonicLanguage", (*(retVals.optl__desc)).mnemonic_language);
@@ -185,8 +185,8 @@ string serial_bridge::seed_and_keys_from_mnemonic(const string mnemonic, const s
 }
 string serial_bridge::validate_components_for_login(const string address, const string privateViewKey, const string privateSpendKey, const string seed, const string nettype)
 {
-	monero_wallet_utils::WalletComponentsValidationResults retVals;
-	bool r = monero_wallet_utils::validate_wallet_components_with( // returns !did_error
+	beldex_wallet_utils::WalletComponentsValidationResults retVals;
+	bool r = beldex_wallet_utils::validate_wallet_components_with( // returns !did_error
 		address,
 		privateViewKey,
 		privateSpendKey,
@@ -210,11 +210,11 @@ string serial_bridge::validate_components_for_login(const string address, const 
 
 string serial_bridge::estimated_tx_network_fee(const string priority, const string feePerb,const string feePerO, const string forkVersion)
 {
-	uint64_t fee = monero_fee_utils::estimated_tx_network_fee(
+	uint64_t fee = beldex_fee_utils::estimated_tx_network_fee(
 		stoull(feePerb),
 		stoull(feePerO),
 		stoul(priority),
-		monero_fork_rules::make_use_fork_rules_fn(stoul(forkVersion))
+		beldex_fork_rules::make_use_fork_rules_fn(stoul(forkVersion))
 	);
 
 	std::ostringstream o;
@@ -251,8 +251,8 @@ string serial_bridge::generate_key_image(const string txPublicKey, const string 
 			return error_ret_json_from_message("Invalid tx public key");
 		}
 	}
-	monero_key_image_utils::KeyImageRetVals retVals;
-	bool r = monero_key_image_utils::new__key_image(
+	beldex_key_image_utils::KeyImageRetVals retVals;
+	bool r = beldex_key_image_utils::new__key_image(
 		pub_spendKey, sec_spendKey, sec_viewKey, tx_pub_key,
 		stoull(outputIndex),
 		retVals
@@ -308,7 +308,7 @@ string serial_bridge::send_step1__prepare_params_for_get_decoys(const string &ar
 			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_output_desc, outs_to_mix_outs_desc.second)
 			{
 				assert(mix_out_output_desc.first.empty()); // array elements have no names
-				auto amountOutput = monero_transfer_utils::RandomAmountOutput{};
+				auto amountOutput = beldex_transfer_utils::RandomAmountOutput{};
 				amountOutput.global_index = stoull(mix_out_output_desc.second.get<string>("global_index"));
 				amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 				amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
@@ -324,14 +324,14 @@ string serial_bridge::send_step1__prepare_params_for_get_decoys(const string &ar
 		fork_version = stoul(*optl__fork_version_string);
 	}
 	Send_Step1_RetVals retVals;
-	monero_transfer_utils::send_step1__prepare_params_for_get_decoys(
+	beldex_transfer_utils::send_step1__prepare_params_for_get_decoys(
 		retVals,
 		//
 		json_root.get_optional<string>("payment_id_string"),
 		vector<uint64_t>{stoull(json_root.get<string>("sending_amount"))},
 		json_root.get<bool>("is_sweeping"),
 		stoul(json_root.get<string>("priority")),
-		monero_fork_rules::make_use_fork_rules_fn(fork_version),
+		beldex_fork_rules::make_use_fork_rules_fn(fork_version),
 		unspent_outs,
 		stoull(json_root.get<string>("fee_per_b")), // per v8
 		stoull(json_root.get<string>("fee_per_o")),
@@ -431,7 +431,7 @@ string serial_bridge::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_a
 			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_output_desc, outs_to_mix_outs_desc.second)
 			{
 				assert(mix_out_output_desc.first.empty()); // array elements have no names
-				auto amountOutput = monero_transfer_utils::RandomAmountOutput{};
+				auto amountOutput = beldex_transfer_utils::RandomAmountOutput{};
 				amountOutput.global_index = stoull(mix_out_output_desc.second.get<string>("global_index"));
 				amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 				amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
@@ -443,7 +443,7 @@ string serial_bridge::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_a
 	}
 	//
 	Tie_Outs_to_Mix_Outs_RetVals retVals;
-	monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
+	beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
 		retVals,
 		//
 		using_outs,
@@ -555,7 +555,7 @@ string serial_bridge::send_step2__try_create_transaction(const string &args_stri
 		fork_version = stoul(*optl__fork_version_string);
 	}
 	Send_Step2_RetVals retVals;
-	monero_transfer_utils::send_step2__try_create_transaction(
+	beldex_transfer_utils::send_step2__try_create_transaction(
 		retVals,
 		//
 		json_root.get<string>("from_address_string"),
@@ -572,7 +572,7 @@ string serial_bridge::send_step2__try_create_transaction(const string &args_stri
 		stoull(json_root.get<string>("fee_per_o")),
 		stoull(json_root.get<string>("fee_mask")),
 		mix_outs,
-		monero_fork_rules::make_use_fork_rules_fn(fork_version),
+		beldex_fork_rules::make_use_fork_rules_fn(fork_version),
 		stoull(json_root.get<string>("unlock_time")),
 		nettype_from_string(json_root.get<string>("nettype_string"))
 	);

@@ -26,29 +26,29 @@ endif()
 
 find_package(OpenSSL REQUIRED)
 
-set(MONERO_SRC "contrib/beldex-core-custom")
+set(BELDEX_SRC "contrib/beldex-core-custom")
 
-# add_subdirectory(${MONERO_SRC}/external/easylogging++)
+# add_subdirectory(${BELDEX_SRC}/external/easylogging++)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories("src")
-include_directories(${MONERO_SRC})
-include_directories("${MONERO_SRC}/external")
-include_directories("${MONERO_SRC}/external/loki-mq")
-include_directories("${MONERO_SRC}/external/easylogging++")
-include_directories("${MONERO_SRC}/epee/include")
-include_directories("${MONERO_SRC}/common")
-include_directories("${MONERO_SRC}/vtlogger")
-include_directories("${MONERO_SRC}/crypto")
-include_directories("${MONERO_SRC}/cryptonote_basic")
-include_directories("${MONERO_SRC}/multisig")
-include_directories("${MONERO_SRC}/cryptonote_core")
-include_directories("${MONERO_SRC}/cryptonote_protocol")
-include_directories("${MONERO_SRC}/wallet")
-include_directories("${MONERO_SRC}/rpc")
-include_directories("${MONERO_SRC}/mnemonics")
-include_directories("${MONERO_SRC}/contrib/libsodium/include") # support sodium/… paths
-include_directories("${MONERO_SRC}/contrib/libsodium/include/sodium")
+include_directories(${BELDEX_SRC})
+include_directories("${BELDEX_SRC}/external")
+include_directories("${BELDEX_SRC}/external/loki-mq")
+include_directories("${BELDEX_SRC}/external/easylogging++")
+include_directories("${BELDEX_SRC}/epee/include")
+include_directories("${BELDEX_SRC}/common")
+include_directories("${BELDEX_SRC}/vtlogger")
+include_directories("${BELDEX_SRC}/crypto")
+include_directories("${BELDEX_SRC}/cryptonote_basic")
+include_directories("${BELDEX_SRC}/multisig")
+include_directories("${BELDEX_SRC}/cryptonote_core")
+include_directories("${BELDEX_SRC}/cryptonote_protocol")
+include_directories("${BELDEX_SRC}/wallet")
+include_directories("${BELDEX_SRC}/rpc")
+include_directories("${BELDEX_SRC}/mnemonics")
+include_directories("${BELDEX_SRC}/contrib/libsodium/include") # support sodium/… paths
+include_directories("${BELDEX_SRC}/contrib/libsodium/include/sodium")
 include_directories("test")
 
 # keeping test files in a separate source directory 
@@ -57,22 +57,22 @@ file(GLOB TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test/test_*.cpp)
 set(
     SRC_FILES
     #
-    src/monero_address_utils.hpp
-    src/monero_address_utils.cpp
-    src/monero_paymentID_utils.hpp
-    src/monero_paymentID_utils.cpp
-    src/monero_key_image_utils.hpp
-    src/monero_key_image_utils.cpp
-    src/monero_fee_utils.hpp
-    src/monero_fee_utils.cpp
-    src/monero_transfer_utils.hpp
-    src/monero_transfer_utils.cpp
-    src/monero_send_routine.hpp
-    src/monero_send_routine.cpp
-    src/monero_fork_rules.hpp
-    src/monero_fork_rules.cpp
-    src/monero_wallet_utils.hpp
-    src/monero_wallet_utils.cpp
+    src/beldex_address_utils.hpp
+    src/beldex_address_utils.cpp
+    src/beldex_paymentID_utils.hpp
+    src/beldex_paymentID_utils.cpp
+    src/beldex_key_image_utils.hpp
+    src/beldex_key_image_utils.cpp
+    src/beldex_fee_utils.hpp
+    src/beldex_fee_utils.cpp
+    src/beldex_transfer_utils.hpp
+    src/beldex_transfer_utils.cpp
+    src/beldex_send_routine.hpp
+    src/beldex_send_routine.cpp
+    src/beldex_fork_rules.hpp
+    src/beldex_fork_rules.cpp
+    src/beldex_wallet_utils.hpp
+    src/beldex_wallet_utils.cpp
     src/serial_bridge_index.hpp
     src/serial_bridge_index.cpp
     src/serial_bridge_utils.hpp
@@ -80,56 +80,56 @@ set(
     src/tools__ret_vals.hpp
     src/tools__ret_vals.cpp
     #
-    ${MONERO_SRC}/cryptonote_basic/cryptonote_basic_impl.cpp
-    ${MONERO_SRC}/cryptonote_basic/account.cpp
-    ${MONERO_SRC}/cryptonote_basic/cryptonote_format_utils.cpp
-    ${MONERO_SRC}/cryptonote_basic/cryptonote_basic.cpp
-    ${MONERO_SRC}/crypto/crypto.cpp
-    ${MONERO_SRC}/crypto/hash.c
-    ${MONERO_SRC}/crypto/cn_heavy_hash_hard_arm.cpp
-    ${MONERO_SRC}/crypto/cn_heavy_hash_hard_intel.cpp
-    ${MONERO_SRC}/crypto/cn_heavy_hash_soft.cpp
-    ${MONERO_SRC}/crypto/cn_turtle_hash.c
-    ${MONERO_SRC}/crypto/oaes_lib.c
-    ${MONERO_SRC}/crypto/crypto-ops.c
-    ${MONERO_SRC}/crypto/crypto-ops-data.c
-    ${MONERO_SRC}/crypto/keccak.c
-    ${MONERO_SRC}/crypto/chacha.c
-    ${MONERO_SRC}/crypto/random.c
-    ${MONERO_SRC}/crypto/aesb.c
-    ${MONERO_SRC}/crypto/tree-hash.c
-    ${MONERO_SRC}/crypto/hash-extra-blake.c
-    ${MONERO_SRC}/crypto/blake256.c
-    ${MONERO_SRC}/crypto/hash-extra-groestl.c
-    ${MONERO_SRC}/crypto/hash-extra-jh.c
-    ${MONERO_SRC}/crypto/hash-extra-skein.c
-    ${MONERO_SRC}/crypto/groestl.c
-    ${MONERO_SRC}/crypto/jh.c
-    ${MONERO_SRC}/crypto/skein.c
-    ${MONERO_SRC}/cryptonote_core/cryptonote_tx_utils.cpp
-    ${MONERO_SRC}/common/base58.cpp
-    ${MONERO_SRC}/common/threadpool.cpp
-    ${MONERO_SRC}/common/aligned.c
-    ${MONERO_SRC}/common/util.cpp
-    ${MONERO_SRC}/common/i18n.cpp
-    ${MONERO_SRC}/common/string_util.cpp
-    ${MONERO_SRC}/epee/src/hex.cpp
-    ${MONERO_SRC}/epee/src/string_tools.cpp
-    ${MONERO_SRC}/epee/src/portable_storage.cpp
-    ${MONERO_SRC}/epee/src/memwipe.c
-    ${MONERO_SRC}/epee/src/mlocker.cpp
-    ${MONERO_SRC}/epee/src/wipeable_string.cpp
-    ${MONERO_SRC}/device/device.cpp
-    ${MONERO_SRC}/device/device_default.cpp
-    ${MONERO_SRC}/ringct/rctOps.cpp
-    ${MONERO_SRC}/ringct/rctTypes.cpp
-    ${MONERO_SRC}/ringct/rctCryptoOps.c
-    ${MONERO_SRC}/ringct/rctSigs.cpp
-    ${MONERO_SRC}/ringct/bulletproofs.cc
-    ${MONERO_SRC}/ringct/multiexp.cc
-    ${MONERO_SRC}/mnemonics/electrum-words.cpp
-    ${MONERO_SRC}/vtlogger/logger.cpp
-    ${MONERO_SRC}/contrib/libsodium/src/crypto_verify/verify.c
+    ${BELDEX_SRC}/cryptonote_basic/cryptonote_basic_impl.cpp
+    ${BELDEX_SRC}/cryptonote_basic/account.cpp
+    ${BELDEX_SRC}/cryptonote_basic/cryptonote_format_utils.cpp
+    ${BELDEX_SRC}/cryptonote_basic/cryptonote_basic.cpp
+    ${BELDEX_SRC}/crypto/crypto.cpp
+    ${BELDEX_SRC}/crypto/hash.c
+    ${BELDEX_SRC}/crypto/cn_heavy_hash_hard_arm.cpp
+    ${BELDEX_SRC}/crypto/cn_heavy_hash_hard_intel.cpp
+    ${BELDEX_SRC}/crypto/cn_heavy_hash_soft.cpp
+    ${BELDEX_SRC}/crypto/cn_turtle_hash.c
+    ${BELDEX_SRC}/crypto/oaes_lib.c
+    ${BELDEX_SRC}/crypto/crypto-ops.c
+    ${BELDEX_SRC}/crypto/crypto-ops-data.c
+    ${BELDEX_SRC}/crypto/keccak.c
+    ${BELDEX_SRC}/crypto/chacha.c
+    ${BELDEX_SRC}/crypto/random.c
+    ${BELDEX_SRC}/crypto/aesb.c
+    ${BELDEX_SRC}/crypto/tree-hash.c
+    ${BELDEX_SRC}/crypto/hash-extra-blake.c
+    ${BELDEX_SRC}/crypto/blake256.c
+    ${BELDEX_SRC}/crypto/hash-extra-groestl.c
+    ${BELDEX_SRC}/crypto/hash-extra-jh.c
+    ${BELDEX_SRC}/crypto/hash-extra-skein.c
+    ${BELDEX_SRC}/crypto/groestl.c
+    ${BELDEX_SRC}/crypto/jh.c
+    ${BELDEX_SRC}/crypto/skein.c
+    ${BELDEX_SRC}/cryptonote_core/cryptonote_tx_utils.cpp
+    ${BELDEX_SRC}/common/base58.cpp
+    ${BELDEX_SRC}/common/threadpool.cpp
+    ${BELDEX_SRC}/common/aligned.c
+    ${BELDEX_SRC}/common/util.cpp
+    ${BELDEX_SRC}/common/i18n.cpp
+    ${BELDEX_SRC}/common/string_util.cpp
+    ${BELDEX_SRC}/epee/src/hex.cpp
+    ${BELDEX_SRC}/epee/src/string_tools.cpp
+    ${BELDEX_SRC}/epee/src/portable_storage.cpp
+    ${BELDEX_SRC}/epee/src/memwipe.c
+    ${BELDEX_SRC}/epee/src/mlocker.cpp
+    ${BELDEX_SRC}/epee/src/wipeable_string.cpp
+    ${BELDEX_SRC}/device/device.cpp
+    ${BELDEX_SRC}/device/device_default.cpp
+    ${BELDEX_SRC}/ringct/rctOps.cpp
+    ${BELDEX_SRC}/ringct/rctTypes.cpp
+    ${BELDEX_SRC}/ringct/rctCryptoOps.c
+    ${BELDEX_SRC}/ringct/rctSigs.cpp
+    ${BELDEX_SRC}/ringct/bulletproofs.cc
+    ${BELDEX_SRC}/ringct/multiexp.cc
+    ${BELDEX_SRC}/mnemonics/electrum-words.cpp
+    ${BELDEX_SRC}/vtlogger/logger.cpp
+    ${BELDEX_SRC}/contrib/libsodium/src/crypto_verify/verify.c
 )
 # needed for slow-hash
 add_compile_options(-maes)

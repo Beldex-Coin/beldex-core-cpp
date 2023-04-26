@@ -1,5 +1,5 @@
 //
-//  monero_fork_rules.cpp
+//  beldex_fork_rules.cpp
 //  MyMonero
 //
 //  Created by Paul Shapiro on 1/9/18.
@@ -33,11 +33,11 @@
 //
 //
 //
-#include "monero_fork_rules.hpp"
+#include "beldex_fork_rules.hpp"
 //
-using namespace monero_fork_rules;
+using namespace beldex_fork_rules;
 //
-bool monero_fork_rules::lightwallet_hardcoded__use_fork_rules(uint8_t version, int64_t early_blocks)
+bool beldex_fork_rules::lightwallet_hardcoded__use_fork_rules(uint8_t version, int64_t early_blocks)
 {
 	return true; // TODO - we don't have the actual fork rules from thje lightwallet server yet
 	//
@@ -57,15 +57,15 @@ bool monero_fork_rules::lightwallet_hardcoded__use_fork_rules(uint8_t version, i
 }
 //
 // Protocol / Defaults
-uint32_t monero_fork_rules::fixed_ringsize()
+uint32_t beldex_fork_rules::fixed_ringsize()
 {
 	return 10; // v17
 }
-uint32_t monero_fork_rules::fixed_mixinsize()
+uint32_t beldex_fork_rules::fixed_mixinsize()
 {
 	return fixed_ringsize() - 1;
 }
-uint64_t monero_fork_rules::dust_threshold()
+uint64_t beldex_fork_rules::dust_threshold()
 {
 	return 2000000000;
 }

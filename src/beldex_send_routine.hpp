@@ -1,5 +1,5 @@
 //
-//  monero_send_routine.hpp
+//  beldex_send_routine.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,8 +29,8 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_send_routine_hpp
-#define monero_send_routine_hpp
+#ifndef beldex_send_routine_hpp
+#define beldex_send_routine_hpp
 //
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -44,14 +44,14 @@
 using namespace tools;
 #include "tools__ret_vals.hpp"
 //
-#include "monero_transfer_utils.hpp"
+#include "beldex_transfer_utils.hpp"
 //
-namespace monero_send_routine
+namespace beldex_send_routine
 {
 	using namespace std;
 	using namespace boost;
 	using namespace cryptonote;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	using namespace crypto;
 	//
 	// Abstracted Send routine
@@ -226,4 +226,4 @@ namespace monero_send_routine
 	);
 }
 
-#endif /* monero_send_routine_hpp */
+#endif /* beldex_send_routine_hpp */

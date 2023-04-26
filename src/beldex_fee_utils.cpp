@@ -1,5 +1,5 @@
 //
-//  monero_fee_utils.cpp
+//  beldex_fee_utils.cpp
 //  Copyright © 2018 MyMonero. All rights reserved.
 //
 //  All rights reserved.
@@ -31,7 +31,7 @@
 //
 //
 //
-#include "monero_fee_utils.hpp"
+#include "beldex_fee_utils.hpp"
 #include "wallet_errors.h"
 #include "epee/string_tools.h"
 //
@@ -41,23 +41,23 @@ using namespace epee;
 using namespace crypto;
 using namespace cryptonote;
 using namespace tools; // for error::
-using namespace monero_fork_rules;
+using namespace beldex_fork_rules;
 //
 // used to choose when to stop adding outputs to a tx
 #define APPROXIMATE_INPUT_BYTES 80
 //
-uint32_t monero_fee_utils::default_priority()
+uint32_t beldex_fee_utils::default_priority()
 {
 	return 1; // lowest
 }
 //
-uint64_t monero_fee_utils::get_base_fee( // added as of v8
+uint64_t beldex_fee_utils::get_base_fee( // added as of v8
 	uint64_t fee_per_b
 ) {
 	return fee_per_b;
 }
 //
-uint64_t monero_fee_utils::estimated_tx_network_fee(
+uint64_t beldex_fee_utils::estimated_tx_network_fee(
 	uint64_t fee_per_byte,
 	uint64_t fee_per_output,
 	uint32_t priority,
@@ -71,7 +71,7 @@ uint64_t monero_fee_utils::estimated_tx_network_fee(
 	//
 	return estimated_fee;
 }
-uint64_t monero_fee_utils::get_upper_transaction_weight_limit(
+uint64_t beldex_fee_utils::get_upper_transaction_weight_limit(
 	uint64_t upper_transaction_weight_limit__or_0_for_default,
 	use_fork_rules_fn_type use_fork_rules_fn
 ) {
@@ -79,7 +79,7 @@ uint64_t monero_fee_utils::get_upper_transaction_weight_limit(
 		return upper_transaction_weight_limit__or_0_for_default;
 	return CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V5 / 2 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
 }
-uint64_t monero_fee_utils::get_fee_percent(uint32_t priority, txtype type)
+uint64_t beldex_fee_utils::get_fee_percent(uint32_t priority, txtype type)
 {
   static constexpr std::array<uint64_t, 4> percents{{150, 500, 2500, 12500}};
 
@@ -99,7 +99,7 @@ uint64_t monero_fee_utils::get_fee_percent(uint32_t priority, txtype type)
 
   return percents[priority-1];
 }	
-uint64_t monero_fee_utils::get_fee_multiplier(
+uint64_t beldex_fee_utils::get_fee_multiplier(
 	uint32_t priority,
 	uint32_t default_priority,
 	int fee_algorithm,
@@ -144,7 +144,7 @@ uint64_t monero_fee_utils::get_fee_multiplier(
 	THROW_WALLET_EXCEPTION_IF (false, error::invalid_priority);
 	return 1;
 }
-int monero_fee_utils::get_fee_algorithm(use_fork_rules_fn_type use_fork_rules_fn)
+int beldex_fee_utils::get_fee_algorithm(use_fork_rules_fn_type use_fork_rules_fn)
 {
 	// changes at v3, v5, v8
 	if (use_fork_rules_fn(HF_VERSION_PER_BYTE_FEE, 0))
@@ -155,7 +155,7 @@ int monero_fee_utils::get_fee_algorithm(use_fork_rules_fn_type use_fork_rules_fn
 		return 1;
 	return 0;
 }
-size_t monero_fee_utils::estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag)
+size_t beldex_fee_utils::estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag)
 {
 	size_t size = 0;
 	
@@ -210,7 +210,7 @@ size_t monero_fee_utils::estimate_rct_tx_size(int n_inputs, int mixin, int n_out
 	LOG_PRINT_L2("estimated " << (bulletproof ? "bulletproof" : "borromean") << " rct tx size for " << n_inputs << " inputs with ring size " << (mixin+1) << " and " << n_outputs << " outputs: " << size << " (" << ((32 * n_inputs/*+1*/) + 2 * 32 * (mixin+1) * n_inputs + 32 * n_outputs) << " saved)");
 	return size;
 }
-size_t monero_fee_utils::estimate_tx_size(bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag)
+size_t beldex_fee_utils::estimate_tx_size(bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag)
 {
 	if (use_rct)
 		return estimate_rct_tx_size(n_inputs, mixin, n_outputs, extra_size, bulletproof, clsag);
@@ -218,7 +218,7 @@ size_t monero_fee_utils::estimate_tx_size(bool use_rct, int n_inputs, int mixin,
 		return n_inputs * (mixin+1) * APPROXIMATE_INPUT_BYTES + extra_size;
 }
 
-uint64_t monero_fee_utils::estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag)
+uint64_t beldex_fee_utils::estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag)
 {
 	size_t size = estimate_tx_size(use_rct, n_inputs, mixin, n_outputs, extra_size, bulletproof, clsag);
 	if (use_rct && bulletproof && n_outputs > 2)
@@ -235,7 +235,7 @@ uint64_t monero_fee_utils::estimate_tx_weight(bool use_rct, int n_inputs, int mi
 	}
 	return size;
 }
-uint64_t monero_fee_utils::estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag, uint64_t fee_per_b,uint64_t fee_per_o, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
+uint64_t beldex_fee_utils::estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag, uint64_t fee_per_b,uint64_t fee_per_o, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
 	if (use_per_byte_fee)
 	{
@@ -249,13 +249,13 @@ uint64_t monero_fee_utils::estimate_fee(bool use_per_byte_fee, bool use_rct, int
 	}
 }
 //
-uint64_t monero_fee_utils::calculate_fee_from_weight(uint64_t fee_per_b,uint64_t fee_per_o, uint64_t weight, int outputs, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
+uint64_t beldex_fee_utils::calculate_fee_from_weight(uint64_t fee_per_b,uint64_t fee_per_o, uint64_t weight, int outputs, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
 	uint64_t fee = (weight * fee_per_b + outputs * fee_per_o) * fee_multiplier / 95;
 	fee = (fee + fee_quantization_mask - 1) / fee_quantization_mask * fee_quantization_mask;
 	return fee;
 }
-uint64_t monero_fee_utils::calculate_fee(bool use_per_byte_fee, const cryptonote::transaction &tx, size_t blob_size, uint64_t fee_per_b,uint64_t fee_per_o, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
+uint64_t beldex_fee_utils::calculate_fee(bool use_per_byte_fee, const cryptonote::transaction &tx, size_t blob_size, uint64_t fee_per_b,uint64_t fee_per_o, uint64_t fee_multiplier, uint64_t fee_quantization_mask)
 {
 	if (use_per_byte_fee) {
 		return calculate_fee_from_weight(fee_per_b,fee_per_o, cryptonote::get_transaction_weight(tx, blob_size),2, fee_multiplier, fee_quantization_mask);
@@ -264,15 +264,15 @@ uint64_t monero_fee_utils::calculate_fee(bool use_per_byte_fee, const cryptonote
 	}
 }
 //
-//uint64_t monero_fee_utils::calculate_fee_from_size(uint64_t fee_per_b, const cryptonote::blobdata &blob, uint64_t fee_multiplier)
+//uint64_t beldex_fee_utils::calculate_fee_from_size(uint64_t fee_per_b, const cryptonote::blobdata &blob, uint64_t fee_multiplier)
 //{
 //	return calculate_fee_from_size(fee_per_b, blob.size(), fee_multiplier);
 //}
-uint64_t monero_fee_utils::calculate_fee_from_size(uint64_t fee_per_b, size_t bytes, uint64_t fee_multiplier)
+uint64_t beldex_fee_utils::calculate_fee_from_size(uint64_t fee_per_b, size_t bytes, uint64_t fee_multiplier)
 {
 	return bytes * fee_per_b * fee_multiplier;
 }
-uint64_t monero_fee_utils::calculate_fee_from_size_1(uint64_t fee_per_b,uint64_t fee_per_o, size_t bytes, uint64_t pct)
+uint64_t beldex_fee_utils::calculate_fee_from_size_1(uint64_t fee_per_b,uint64_t fee_per_o, size_t bytes, uint64_t pct)
 {
 	return (fee_per_b * bytes + fee_per_o * 2/*minouts*/) * pct / 100;
 }
