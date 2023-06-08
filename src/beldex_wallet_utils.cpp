@@ -1,5 +1,5 @@
 //
-//  monero_wallet_utils.cpp
+//  beldex_wallet_utils.cpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -30,7 +30,8 @@
 //
 //
 //
-#include "monero_wallet_utils.hpp"
+#include <boost/optional.hpp>
+#include "beldex_wallet_utils.hpp"
 #include <boost/algorithm/string.hpp>
 #include "cryptonote_basic.h"
 #include "device/device.hpp"
@@ -38,14 +39,14 @@
 #include "wallet_errors.h" // not crazy about including this but it's not that bad
 #include "keccak.h"
 //
-#include "string_tools.h"
+#include "epee/string_tools.h"
 using namespace epee;
 //
 extern "C" {
 	#include "crypto-ops.h"
 }
 //
-using namespace monero_wallet_utils;
+using namespace beldex_wallet_utils;
 using namespace crypto; // for extension
 //
 // 16 byte seeds
@@ -57,16 +58,17 @@ inline void cn_pad_by_fast_hash(const uint8_t *indata, std::size_t inlen, uint8_
 {
 	cn_pad_by_fast_hash__C(indata, inlen, outdata, (int)outlen);
 }
-void monero_wallet_utils::coerce_valid_sec_key_from(
+void beldex_wallet_utils::coerce_valid_sec_key_from(
 	const legacy16B_secret_key &legacy16B_mymonero_sec_seed,
 	secret_key &dst__sec_seed
 ) { // cn_fast_hash legacy16B_sec_seed in order to 'pad' it to 256 bits so it can be chopped to ec_scalar
 	static_assert(!epee::has_padding<legacy16B_secret_key>(), "potential hash of padding data");
-	static_assert(!epee::has_padding<secret_key>(), "writing to struct with extra data");
+	static_assert(is_byte_spannable<secret_key>, "writing to struct with extra data");
+	// static_assert(!epee::has_padding<secret_key>(), "writing to struct with extra data");
 	cn_pad_by_fast_hash((uint8_t *)&legacy16B_mymonero_sec_seed, sizeof(legacy16B_secret_key),
 						(uint8_t *)&dst__sec_seed, sizeof(secret_key));
 }
-bool monero_wallet_utils::words_to_bytes(
+bool beldex_wallet_utils::words_to_bytes(
 	const epee::wipeable_string &words,
 	legacy16B_secret_key &dst,
 	std::string &language_name
@@ -81,7 +83,7 @@ bool monero_wallet_utils::words_to_bytes(
 	dst = *(const legacy16B_secret_key*)s.data();
 	return true;
 }
-bool monero_wallet_utils::bytes_to_words(
+bool beldex_wallet_utils::bytes_to_words(
 	const legacy16B_secret_key &src,
 	epee::wipeable_string &words,
 	const std::string &language_name
@@ -92,7 +94,7 @@ bool monero_wallet_utils::bytes_to_words(
 	);
 }
 //
-bool monero_wallet_utils::convenience__new_wallet_with_language_code(
+bool beldex_wallet_utils::convenience__new_wallet_with_language_code(
 	const string &locale_language_code,
 	WalletDescriptionRetVals &retVals,
 	network_type nettype
@@ -106,7 +108,7 @@ bool monero_wallet_utils::convenience__new_wallet_with_language_code(
 	return new_wallet(*mnemonic_language, retVals, nettype);
 }
 //
-bool monero_wallet_utils::new_wallet(
+bool beldex_wallet_utils::new_wallet(
     const string &mnemonic_language,
 	WalletDescriptionRetVals &retVals,
 	network_type nettype
@@ -145,7 +147,7 @@ bool monero_wallet_utils::new_wallet(
 	return true;
 }
 //
-bool monero_wallet_utils::are_equal_mnemonics(const string &words_a, const string &words_b)
+bool beldex_wallet_utils::are_equal_mnemonics(const string &words_a, const string &words_b)
 {
 	bool r;
 	//
@@ -169,7 +171,7 @@ const uint32_t legacy_16B_seed_mnemonic_word_count = 13;
 bool _areBothSpaceChars(char lhs, char rhs) {
 	return lhs == rhs && lhs == ' ';
 }
-bool monero_wallet_utils::decoded_seed(
+bool beldex_wallet_utils::decoded_seed(
 	const epee::wipeable_string &arg__mnemonic_string__ref,
 	MnemonicDecodedSeed_RetVals &retVals
 ) {
@@ -214,21 +216,9 @@ bool monero_wallet_utils::decoded_seed(
 			return false;
 		}
 		sec_seed_string = string_tools::pod_to_hex(sec_seed);
-	} else if (word_count == legacy_16B_seed_mnemonic_word_count) {
-		from_legacy16B_lw_seed = true;
-		legacy16B_secret_key legacy16B_sec_seed;
-		bool r = words_to_bytes(mnemonic_string__ref, legacy16B_sec_seed, mnemonic_language); // special 16 byte function
-		if (!r) {
-			retVals.did_error = true;
-			retVals.err_string = "Invalid 13-word mnemonic";
-			//
-			return false;
-		}
-		coerce_valid_sec_key_from(legacy16B_sec_seed, sec_seed);
-		sec_seed_string = string_tools::pod_to_hex(legacy16B_sec_seed); // <- NOTE: we are returning the _LEGACY_ seed as the string… this is important so we don't lose the fact it was 16B/13-word originally!
 	} else {
 		retVals.did_error = true;
-		retVals.err_string = "Please enter a 25 or 13-word secret mnemonic.";
+		retVals.err_string = "Please enter a 25 secret mnemonic.";
 		//
 		return false;
 	}
@@ -241,7 +231,7 @@ bool monero_wallet_utils::decoded_seed(
 	return true;
 }
 //
-SeedDecodedMnemonic_RetVals monero_wallet_utils::mnemonic_string_from_seed_hex_string(
+SeedDecodedMnemonic_RetVals beldex_wallet_utils::mnemonic_string_from_seed_hex_string(
 	const std::string &sec_hexString,
 	const std::string &mnemonic_language // aka wordset name
 ) {
@@ -283,7 +273,7 @@ SeedDecodedMnemonic_RetVals monero_wallet_utils::mnemonic_string_from_seed_hex_s
 	return retVals;
 }
 //
-bool monero_wallet_utils::wallet_with(
+bool beldex_wallet_utils::wallet_with(
 	const string &mnemonic_string,
 	WalletDescriptionRetVals &retVals,
 	cryptonote::network_type nettype
@@ -320,7 +310,7 @@ bool monero_wallet_utils::wallet_with(
 	};
 	return true;
 }
-bool monero_wallet_utils::address_and_keys_from_seed(
+bool beldex_wallet_utils::address_and_keys_from_seed(
 	const string &sec_seed_string,
 	network_type nettype,
 	ComponentsFromSeed_RetVals &retVals
@@ -372,11 +362,11 @@ bool monero_wallet_utils::address_and_keys_from_seed(
 	};
 	return true;
 }
-bool monero_wallet_utils::validate_wallet_components_with( // returns !did_error
+bool beldex_wallet_utils::validate_wallet_components_with( // returns !did_error
 	const string &address_string,
 	const string &sec_viewKey_string,
-	optional<string> sec_spendKey_string,
-	optional<string> sec_seed_string,
+	boost::optional<string> sec_spendKey_string,
+	boost::optional<string> sec_seed_string,
 	cryptonote::network_type nettype,
 	WalletComponentsValidationResults &retVals
 ) { // TODO: how can the err_strings be prepared for localization?

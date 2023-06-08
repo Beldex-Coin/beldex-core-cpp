@@ -1,5 +1,5 @@
 //
-//  monero_send_routine.hpp
+//  beldex_send_routine.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,14 +29,14 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_send_routine_hpp
-#define monero_send_routine_hpp
+#ifndef beldex_send_routine_hpp
+#define beldex_send_routine_hpp
 //
 #include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 //
-#include "string_tools.h"
+#include "epee/string_tools.h"
 #include "crypto.h"
 #include "cryptonote_basic.h"
 #include "cryptonote_format_utils.h"
@@ -44,14 +44,14 @@
 using namespace tools;
 #include "tools__ret_vals.hpp"
 //
-#include "monero_transfer_utils.hpp"
+#include "beldex_transfer_utils.hpp"
 //
-namespace monero_send_routine
+namespace beldex_send_routine
 {
 	using namespace std;
 	using namespace boost;
 	using namespace cryptonote;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	using namespace crypto;
 	//
 	// Abstracted Send routine
@@ -101,7 +101,7 @@ namespace monero_send_routine
 	{
 		boost::property_tree::ptree req_params_root;
 		boost::property_tree::ptree amounts_ptree;
-		BOOST_FOREACH(const string &amount_string, req_params.amounts)
+		for(const string &amount_string : req_params.amounts)
 		{
 			property_tree::ptree amount_child;
 			amount_child.put("", amount_string);
@@ -116,7 +116,7 @@ namespace monero_send_routine
 	}
 	LightwalletAPI_Req_GetRandomOuts new__req_params__get_random_outs( // used internally and by emscr async send impl
 		const vector<SpendableOutput> &step1__using_outs,
-		const optional<SpendableOutputToRandomAmountOutputs> &prior_attempt_unspent_outs_to_mix_outs
+		const boost::optional<SpendableOutputToRandomAmountOutputs> &prior_attempt_unspent_outs_to_mix_outs
 	);
 	typedef std::function<void(
 		LightwalletAPI_Req_GetRandomOuts, // req_params - use these for making the request
@@ -128,6 +128,7 @@ namespace monero_send_routine
 		const string address;
 		const string view_key;
 		const string tx; // serialized tx
+		const uint32_t priority;
 	};
 	static inline string json_string_from_req_SubmitRawTx(const LightwalletAPI_Req_SubmitRawTx &req_params)
 	{
@@ -136,6 +137,7 @@ namespace monero_send_routine
 		req_params_root.put("address", std::move(req_params.address));
 		req_params_root.put("view_key", std::move(req_params.view_key));
 		req_params_root.put("tx", std::move(req_params.tx));
+		req_params_root.put("fee", std::move(req_params.priority));
 		stringstream req_params_ss;
 		boost::property_tree::write_json(req_params_ss, req_params_root, false/*pretty*/);
 		//
@@ -175,8 +177,8 @@ namespace monero_send_routine
 	// - Accessory types - Callbacks - Routine completions
 	struct SendFunds_Error_RetVals
 	{
-		optional<string> explicit_errMsg;
-		optional<CreateTransactionErrorCode> errCode; // if != noError, abort Send process
+		boost::optional<string> explicit_errMsg;
+		boost::optional<CreateTransactionErrorCode> errCode; // if != noError, abort Send process
 		// for display / information purposes on errCode=needMoreMoneyThanFound during step1:
 		uint64_t spendable_balance; //  (effectively but not the same as spendable_balance)
 		uint64_t required_balance; // for display / information purposes on errCode=needMoreMoneyThanFound during step1
@@ -188,7 +190,7 @@ namespace monero_send_routine
 		uint64_t used_fee;
 		uint64_t total_sent; // final_total_wo_fee + final_fee
 		size_t mixin;
-		optional<string> final_payment_id; // will be filled if a payment id was passed in or an integrated address was used
+		boost::optional<string> final_payment_id; // will be filled if a payment id was passed in or an integrated address was used
 		string signed_serialized_tx_string;
 		string tx_hash_string;
 		string tx_key_string; // this includes additional_tx_keys
@@ -199,18 +201,19 @@ namespace monero_send_routine
 	// Response parsing
 	struct LightwalletAPI_Res_GetUnspentOuts
 	{
-		optional<string> err_msg;
+		boost::optional<string> err_msg;
 		// OR
-		optional<uint64_t> per_byte_fee;
-		optional<uint64_t> fee_mask;
-		optional<vector<SpendableOutput>> unspent_outs;
+		boost::optional<uint64_t> per_byte_fee;
+		boost::optional<uint64_t> fee_per_output;
+		boost::optional<uint64_t> fee_mask;
+		boost::optional<vector<SpendableOutput>> unspent_outs;
 		uint8_t fork_version;
 	};
 	struct LightwalletAPI_Res_GetRandomOuts
 	{
-		optional<string> err_msg;
+		boost::optional<string> err_msg;
 		// OR
-		optional<vector<RandomAmountOutputs>> mix_outs;
+		boost::optional<vector<RandomAmountOutputs>> mix_outs;
 	};
 	LightwalletAPI_Res_GetUnspentOuts new__parsed_res__get_unspent_outs(
 		const property_tree::ptree &res,
@@ -223,4 +226,4 @@ namespace monero_send_routine
 	);
 }
 
-#endif /* monero_send_routine_hpp */
+#endif /* beldex_send_routine_hpp */

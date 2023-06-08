@@ -1,5 +1,5 @@
 //
-//  monero_paymentID_utils.cpp
+//  beldex_paymentID_utils.cpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,26 +29,26 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#include "monero_paymentID_utils.hpp"
+#include "beldex_paymentID_utils.hpp"
 #include <regex>
 #include "cryptonote_basic.h"
 #include "cryptonote_basic/blobdatatype.h"
-#include "string_tools.h"
+#include "epee/string_tools.h"
 using namespace epee;
 using namespace std;
 using namespace boost;
 //
 //
-crypto::hash8 monero_paymentID_utils::new_short_plain_paymentID()
+crypto::hash8 beldex_paymentID_utils::new_short_plain_paymentID()
 {
 	return crypto::rand<crypto::hash8>();
 }
-std::string monero_paymentID_utils::new_short_plain_paymentID_string()
+std::string beldex_paymentID_utils::new_short_plain_paymentID_string()
 {
-	return string_tools::pod_to_hex(monero_paymentID_utils::new_short_plain_paymentID());
+	return string_tools::pod_to_hex(beldex_paymentID_utils::new_short_plain_paymentID());
 }
 //
-bool monero_paymentID_utils::parse_long_payment_id(const std::string& payment_id_str, crypto::hash& payment_id)
+bool beldex_paymentID_utils::parse_long_payment_id(const std::string& payment_id_str, crypto::hash& payment_id)
 {
 	cryptonote::blobdata payment_id_data;
 	if (!epee::string_tools::parse_hexstr_to_binbuff(payment_id_str, payment_id_data)) {
@@ -61,7 +61,7 @@ bool monero_paymentID_utils::parse_long_payment_id(const std::string& payment_id
 	//
 	return true;
 }
-bool monero_paymentID_utils::parse_short_payment_id(const std::string& payment_id_str, crypto::hash8& payment_id)
+bool beldex_paymentID_utils::parse_short_payment_id(const std::string& payment_id_str, crypto::hash8& payment_id)
 {
 	cryptonote::blobdata payment_id_data;
 	if (!epee::string_tools::parse_hexstr_to_binbuff(payment_id_str, payment_id_data)) {
@@ -74,7 +74,7 @@ bool monero_paymentID_utils::parse_short_payment_id(const std::string& payment_i
 	//
 	return true;
 }
-bool monero_paymentID_utils::parse_payment_id(const std::string& payment_id_str, crypto::hash& payment_id)
+bool beldex_paymentID_utils::parse_payment_id(const std::string& payment_id_str, crypto::hash& payment_id)
 {
 	if (parse_long_payment_id(payment_id_str, payment_id)) {
 		return true;
@@ -88,7 +88,7 @@ bool monero_paymentID_utils::parse_payment_id(const std::string& payment_id_str,
 	return false;
 }
 //
-bool monero_paymentID_utils::is_a_valid_or_not_a_payment_id_of_length(const string &str, size_t length)
+bool beldex_paymentID_utils::is_a_valid_or_not_a_payment_id_of_length(const string &str, size_t length)
 {
 	if (str.size() != length) {
 		return false;
@@ -100,7 +100,7 @@ bool monero_paymentID_utils::is_a_valid_or_not_a_payment_id_of_length(const stri
 	}
 	return false;
 }
-bool monero_paymentID_utils::is_a_valid_or_not_a_payment_id(optional<string> str)
+bool beldex_paymentID_utils::is_a_valid_or_not_a_payment_id(boost::optional<string> str)
 {
 	if (str == boost::none || str->empty()) {
 		return true; // not a payment id b/c it's nil

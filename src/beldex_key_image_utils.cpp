@@ -1,5 +1,5 @@
 //
-//  monero_key_image_utils.cpp
+//  beldex_key_image_utils.cpp
 //  MyMonero
 //
 //  Created by Paul Shapiro on 1/2/18.
@@ -32,12 +32,12 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#include "monero_key_image_utils.hpp"
+#include "beldex_key_image_utils.hpp"
 //
 using namespace crypto;
 using namespace cryptonote;
 //
-bool monero_key_image_utils::new__key_image(
+bool beldex_key_image_utils::new__key_image(
 	const crypto::public_key& account_pub_spend_key,
 	const crypto::secret_key& account_sec_spend_key,
 	const crypto::secret_key& account_sec_view_key,

@@ -1,8 +1,5 @@
 //
-//  monero_key_image_utils.hpp
-//  MyMonero
-//
-//  Created by Paul Shapiro on 1/2/18.
+//  beldex_paymentID_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -32,29 +29,35 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_key_image_utils_hpp
-#define monero_key_image_utils_hpp
-//
+
+#ifndef beldex_paymentID_utils_hpp
+#define beldex_paymentID_utils_hpp
+
+#include <stdio.h>
+#include <boost/optional.hpp>
 #include "crypto.h"
-#include "cryptonote_basic.h"
-//
-using namespace tools;
-#include "tools__ret_vals.hpp"
-//
-namespace monero_key_image_utils
+
+namespace beldex_paymentID_utils
 {
-	struct KeyImageRetVals: RetVals_base
-	{
-		crypto::key_image calculated_key_image;
-	};
-	bool new__key_image(
-		const crypto::public_key& account_pub_spend_key,
-		const crypto::secret_key& account_sec_spend_key,
-		const crypto::secret_key& account_sec_view_key,
-		const crypto::public_key& tx_public_key,
-		uint64_t out_index,
-		KeyImageRetVals &KeyImageRetVals
-	);
+	using namespace std;
+	using namespace boost;
+	//
+	// Constants
+	static const size_t payment_id_length__short = 16;
+	static const size_t payment_id_length__long = 64;
+	//
+	// Generating Payment IDs
+	crypto::hash8 new_short_plain_paymentID();
+	string new_short_plain_paymentID_string();
+	//
+	// Parsing and Detecting Payment IDs
+	bool parse_long_payment_id(const string& payment_id_str, crypto::hash& payment_id);
+	bool parse_short_payment_id(const string& payment_id_str, crypto::hash8& payment_id);
+	bool parse_payment_id(const string& payment_id_str, crypto::hash& payment_id);
+	//
+	// Validating payment IDs
+	bool is_a_valid_or_not_a_payment_id_of_length(const string &str, size_t length);
+	bool is_a_valid_or_not_a_payment_id(boost::optional<string> str); // this checks 16 and then 64 len strs
 }
-//
-#endif /* monero_key_image_utils_hpp */
+
+#endif /* beldex_paymentID_utils_hpp */

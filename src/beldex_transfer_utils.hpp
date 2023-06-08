@@ -1,5 +1,5 @@
 //
-//  monero_transfer_utils.hpp
+//  beldex_transfer_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,12 +29,12 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_transfer_utils_hpp
-#define monero_transfer_utils_hpp
+#ifndef beldex_transfer_utils_hpp
+#define beldex_transfer_utils_hpp
 //
 #include <boost/optional.hpp>
 //
-#include "string_tools.h"
+#include "epee/string_tools.h"
 //
 #include "crypto.h"
 #include "cryptonote_basic.h"
@@ -42,18 +42,18 @@
 #include "cryptonote_tx_utils.h"
 #include "ringct/rctSigs.h"
 //
-#include "monero_fork_rules.hpp"
-#include "monero_fee_utils.hpp"
+#include "beldex_fork_rules.hpp"
+#include "beldex_fee_utils.hpp"
 //
 using namespace tools;
 #include "tools__ret_vals.hpp"
 //
-namespace monero_transfer_utils
+namespace beldex_transfer_utils
 {
 	using namespace std;
 	using namespace boost;
 	using namespace cryptonote;
-	using namespace monero_fork_rules;
+	using namespace beldex_fork_rules;
 	using namespace crypto;
 	
 	// Types - Arguments
@@ -61,7 +61,7 @@ namespace monero_transfer_utils
 	{
 		uint64_t amount;
 		string public_key;
-		optional<string> rct;
+		boost::optional<string> rct;
 		uint64_t global_index;
 		uint64_t index;
 		string tx_pub_key;
@@ -70,7 +70,7 @@ namespace monero_transfer_utils
 	{
 		uint64_t global_index; // this is, I believe, presently supplied as a string by the API, probably to avoid overflow
 		string public_key;
-		optional<string> rct;
+		boost::optional<string> rct;
 	};
 	struct RandomAmountOutputs
 	{
@@ -166,7 +166,7 @@ namespace monero_transfer_utils
         return "Unknown error";
 	}
 	//
-	// See monero_send_routine for actual app-lvl interface used by lightwallets 
+	// See beldex_send_routine for actual app-lvl interface used by lightwallets 
 	//
 	//
 	// Send_Step* functions procedure for integrators:
@@ -196,7 +196,7 @@ namespace monero_transfer_utils
 	void send_step1__prepare_params_for_get_decoys(
 		Send_Step1_RetVals &retVals,
 		//
-		const optional<string>& payment_id_string,
+		const boost::optional<string>& payment_id_string,
 		const vector<uint64_t>& sending_amounts,
 		bool is_sweeping,
 		uint32_t simple_priority,
@@ -204,10 +204,11 @@ namespace monero_transfer_utils
 		//
 		const vector<SpendableOutput> &unspent_outs,
 		uint64_t fee_per_b, // per v8
+		uint64_t fee_per_o,
 		uint64_t fee_quantization_mask,
 		//
-		optional<uint64_t> prior_attempt_size_calcd_fee, // use this for passing step2 "must-reconstruct" return values back in, i.e. re-entry; when nil, defaults to attempt at network min
-		optional<SpendableOutputToRandomAmountOutputs> prior_attempt_unspent_outs_to_mix_outs = none // use this to make sure upon re-attempting, the calculated fee will be the result of calculate_fee()
+		boost::optional<uint64_t> prior_attempt_size_calcd_fee, // use this for passing step2 "must-reconstruct" return values back in, i.e. re-entry; when nil, defaults to attempt at network min
+		boost::optional<SpendableOutputToRandomAmountOutputs> prior_attempt_unspent_outs_to_mix_outs = none // use this to make sure upon re-attempting, the calculated fee will be the result of calculate_fee()
 	);
 	struct Tie_Outs_to_Mix_Outs_RetVals
 	{
@@ -223,7 +224,7 @@ namespace monero_transfer_utils
 		const vector<SpendableOutput> &using_outs,
 		vector<RandomAmountOutputs> mix_outs_from_server,
 		//
-		const optional<SpendableOutputToRandomAmountOutputs> &prior_attempt_unspent_outs_to_mix_outs
+		const boost::optional<SpendableOutputToRandomAmountOutputs> &prior_attempt_unspent_outs_to_mix_outs
 	);
 	//
 	struct Send_Step2_RetVals
@@ -235,10 +236,10 @@ namespace monero_transfer_utils
 		uint64_t fee_actually_needed; // will be non-zero if tx_must_be_reconstructed
 		//
 		// Success parameters:
-		optional<string> signed_serialized_tx_string;
-		optional<string> tx_hash_string;
-		optional<string> tx_key_string; // this includes additional_tx_keys
-		optional<string> tx_pub_key_string; // from get_tx_pub_key_from_extra()
+		boost::optional<string> signed_serialized_tx_string;
+		boost::optional<string> tx_hash_string;
+		boost::optional<string> tx_key_string; // this includes additional_tx_keys
+		boost::optional<string> tx_pub_key_string; // from get_tx_pub_key_from_extra()
 	};
 	void send_step2__try_create_transaction(
 		Send_Step2_RetVals &retVals,
@@ -247,13 +248,14 @@ namespace monero_transfer_utils
 		const string &sec_viewKey_string,
 		const string &sec_spendKey_string,
 		const vector<string> &to_address_strings,
-		const optional<string>& payment_id_string,
+		const boost::optional<string>& payment_id_string,
 		const vector<uint64_t>& sending_amounts, // this gets passed to create_transaction's 'sending_amount'
 		uint64_t change_amount,
 		uint64_t fee_amount,
 		uint32_t simple_priority,
 		const vector<SpendableOutput> &using_outs,
 		uint64_t fee_per_b, // per v8
+		uint64_t fee_per_o,
 		uint64_t fee_quantization_mask,
 		vector<RandomAmountOutputs> &mix_outs, // it gets sorted
 		use_fork_rules_fn_type use_fork_rules_fn,
@@ -268,12 +270,12 @@ namespace monero_transfer_utils
 	{
 		CreateTransactionErrorCode errCode;
 		//
-		optional<string> signed_serialized_tx_string;
-		optional<string> tx_hash_string;
-		optional<string> tx_key_string; // this includes additional_tx_keys
-		optional<string> tx_pub_key_string; // from get_tx_pub_key_from_extra()
-		optional<transaction> tx; // for block weight
-		optional<size_t> txBlob_byteLength;
+		boost::optional<string> signed_serialized_tx_string;
+		boost::optional<string> tx_hash_string;
+		boost::optional<string> tx_key_string; // this includes additional_tx_keys
+		boost::optional<string> tx_pub_key_string; // from get_tx_pub_key_from_extra()
+		boost::optional<transaction> tx; // for block weight
+		boost::optional<size_t> txBlob_byteLength;
 	};
 	void convenience__create_transaction(
 		Convenience_TransactionConstruction_RetVals &retVals,
@@ -281,10 +283,11 @@ namespace monero_transfer_utils
 		const string &sec_viewKey_string,
 		const string &sec_spendKey_string,
 		const vector<string> &to_address_string,
-		const optional<string>& payment_id_string,
+		const boost::optional<string>& payment_id_string,
 		const vector<uint64_t>& sending_amounts,
 		uint64_t change_amount,
 		uint64_t fee_amount,
+		uint32_t simple_priority,
 		const vector<SpendableOutput> &outputs,
 		vector<RandomAmountOutputs> &mix_outs, // get sorted
 		use_fork_rules_fn_type use_fork_rules_fn,
@@ -295,9 +298,9 @@ namespace monero_transfer_utils
 	{
 		CreateTransactionErrorCode errCode;
 		//
-		optional<transaction> tx;
-		optional<secret_key> tx_key;
-		optional<vector<secret_key>> additional_tx_keys;
+		boost::optional<transaction> tx;
+		boost::optional<secret_key> tx_key;
+		boost::optional<vector<secret_key>> additional_tx_keys;
 	};
 	void create_transaction(
 		TransactionConstruction_RetVals &retVals,
@@ -308,6 +311,7 @@ namespace monero_transfer_utils
 		const vector<uint64_t>& sending_amounts,
 		uint64_t change_amount,
 		uint64_t fee_amount,
+		uint32_t simple_priority,
 		const vector<SpendableOutput> &outputs,
 		vector<RandomAmountOutputs> &mix_outs,
 		const std::vector<uint8_t> &extra, // this is not declared const b/c it may have the output tx pub key appended to it
@@ -318,4 +322,4 @@ namespace monero_transfer_utils
 	);
 }
 
-#endif /* monero_transfer_utils_hpp */
+#endif /* beldex_transfer_utils_hpp */

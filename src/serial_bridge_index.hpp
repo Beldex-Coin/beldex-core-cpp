@@ -64,7 +64,7 @@ namespace serial_bridge
 	string seed_and_keys_from_mnemonic(const string mnemonic, const string nettype);
 	string validate_components_for_login(const string address, const string privateViewKey, const string privateSpendKey, const string seed, const string nettype);
 	//
-	string estimated_tx_network_fee(const string priority, const string feePerb, const string forkVersion);
+	string estimated_tx_network_fee(const string priority, const string feePerb, const string feePerO, const string forkVersion);
 	string generate_key_image(const string txPublicKey, const string privateViewKey, const string publicSpendKey, const string privateSpendKey, const string outputIndex);
 }
 

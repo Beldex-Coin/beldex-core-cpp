@@ -1,5 +1,5 @@
 //
-//  monero_wallet_utils.hpp
+//  beldex_wallet_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -30,10 +30,11 @@
 //
 //
 
-#ifndef monero_wallet_utils_hpp
-#define monero_wallet_utils_hpp
+#ifndef beldex_wallet_utils_hpp
+#define beldex_wallet_utils_hpp
 
 #include <boost/optional.hpp>
+#include <boost/utility/value_init.hpp>
 #include "serialization/binary_archive.h"
 #include "cryptonote_basic.h"
 #include "cryptonote_basic_impl.h"
@@ -44,15 +45,17 @@
 //
 #include "generic-ops.h" // mostly to get its includes
 //
-#include "misc_log_ex.h"
-#include "wipeable_string.h"
-#include "string_tools.h"
+#include "epee/misc_log_ex.h"
+#include "epee/wipeable_string.h"
+#include "epee/string_tools.h"
+#include "common/pod-class.h"
+
 using namespace epee;
 //
 using namespace tools; // intentionally first
 #include "tools__ret_vals.hpp"
 //
-namespace monero_wallet_utils
+namespace beldex_wallet_utils
 {
 	using namespace std;
 	using namespace boost;
@@ -87,10 +90,10 @@ namespace monero_wallet_utils
 	// Accounts
 	struct MnemonicDecodedSeed_RetVals: RetVals_base
 	{
-		optional<secret_key> optl__sec_seed = none;
-		optional<string> optl__sec_seed_string = none;
-		optional<string> optl__mnemonic_string = none;
-		optional<string> mnemonic_language = none;
+		boost::optional<secret_key> optl__sec_seed = none;
+		boost::optional<string> optl__sec_seed_string = none;
+		boost::optional<string> optl__mnemonic_string = none;
+		boost::optional<string> mnemonic_language = none;
 		bool from_legacy16B_lw_seed = false;
 	};
 	bool decoded_seed(
@@ -101,7 +104,7 @@ namespace monero_wallet_utils
 	//
 	struct SeedDecodedMnemonic_RetVals: RetVals_base
 	{
-		optional<epee::wipeable_string> mnemonic_string = none;
+		boost::optional<epee::wipeable_string> mnemonic_string = none;
 	};
 	SeedDecodedMnemonic_RetVals mnemonic_string_from_seed_hex_string(
 		const string &seed_string,
@@ -125,7 +128,7 @@ namespace monero_wallet_utils
 	};
 	struct WalletDescriptionRetVals: RetVals_base
 	{
-		optional<WalletDescription> optl__desc = boost::none;
+		boost::optional<WalletDescription> optl__desc = boost::none;
 	};
 	inline bool is_prefixed_by(const string &haystack, const string &needle)
 	{
@@ -133,7 +136,7 @@ namespace monero_wallet_utils
 		//
 		return res.first == needle.end();
 	}
-	inline optional<string> mnemonic_language_from_code(const string &language_code)
+	inline boost::optional<string> mnemonic_language_from_code(const string &language_code)
 	{ // using is_prefixed_by so that e.g. en-US would match as en
 		if (is_prefixed_by(language_code, "en")) {
 			return string("English");
@@ -189,8 +192,8 @@ namespace monero_wallet_utils
 	bool validate_wallet_components_with( // returns !did_error
 		const string &address_string,
 		const string &sec_viewKey_string,
-		optional<string> sec_spendKey_string,
-		optional<string> sec_seed_string,
+		boost::optional<string> sec_spendKey_string,
+		boost::optional<string> sec_seed_string,
 		network_type nettype,
 		WalletComponentsValidationResults &retVals
 	);
@@ -206,7 +209,7 @@ namespace monero_wallet_utils
 	};
 	struct ComponentsFromSeed_RetVals: RetVals_base
 	{
-		optional<ComponentsFromSeed> optl__val = boost::none;
+		boost::optional<ComponentsFromSeed> optl__val = boost::none;
 	};
 	bool address_and_keys_from_seed(
 		const string &sec_seed_string,
@@ -217,7 +220,7 @@ namespace monero_wallet_utils
 
 
 #define MWU__MAKE_COMPARABLE(type) \
-namespace monero_wallet_utils { \
+namespace beldex_wallet_utils { \
 inline bool operator==(const type &_v1, const type &_v2) { \
 return !memcmp(&_v1, &_v2, sizeof(_v1)); \
 } \
@@ -227,7 +230,7 @@ return !operator==(_v1, _v2); \
 }
 
 #define MWU__MAKE_COMPARABLE_CONSTANT_TIME(type) \
-namespace monero_wallet_utils { \
+namespace beldex_wallet_utils { \
 inline bool operator==(const type &_v1, const type &_v2) { \
 static_assert(sizeof(_v1) == 32, "constant time comparison is only implenmted for 32 bytes"); \
 return crypto_verify_32((const unsigned char*)&_v1, (const unsigned char*)&_v2) == 0; \
@@ -238,7 +241,7 @@ return !operator==(_v1, _v2); \
 }
 
 #define MWU__DEFINE_HASH_FUNCTIONS(type) \
-namespace monero_wallet_utils { \
+namespace beldex_wallet_utils { \
 static_assert(sizeof(std::size_t) <= sizeof(type), "Size of " #type " must be at least that of size_t"); \
 inline std::size_t hash_value(const type &_v) { \
 return reinterpret_cast<const std::size_t &>(_v); \
@@ -246,8 +249,8 @@ return reinterpret_cast<const std::size_t &>(_v); \
 } \
 namespace std { \
 template<> \
-struct hash<monero_wallet_utils::type> { \
-std::size_t operator()(const monero_wallet_utils::type &_v) const { \
+struct hash<beldex_wallet_utils::type> { \
+std::size_t operator()(const beldex_wallet_utils::type &_v) const { \
 return reinterpret_cast<const std::size_t &>(_v); \
 } \
 }; \
@@ -264,4 +267,4 @@ MWU__DEFINE_HASH_FUNCTIONS(type)
 
 MWU__MAKE_HASHABLE(legacy16B_secret_key) // "constant time comparison is only implenmted for 32 bytes"
 
-#endif /* monero_wallet_utils_hpp */
+#endif /* beldex_wallet_utils_hpp */

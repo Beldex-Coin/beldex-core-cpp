@@ -1,5 +1,8 @@
 //
-//  monero_address_utils.hpp
+//  beldex_fork_rules.cpp
+//  MyMonero
+//
+//  Created by Paul Shapiro on 1/9/18.
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,34 +32,40 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#include <string>
-#include <boost/optional.hpp>
 //
-#include "cryptonote_config.h"
-#include "cryptonote_basic/account.h"
-
-#include "tools__ret_vals.hpp"
+#include "beldex_fork_rules.hpp"
 //
-namespace monero
+using namespace beldex_fork_rules;
+//
+bool beldex_fork_rules::lightwallet_hardcoded__use_fork_rules(uint8_t version, int64_t early_blocks)
 {
-	namespace address_utils
-	{
-		using namespace std;
-		using namespace boost;
-		using namespace cryptonote;
-		
-		struct DecodedAddress_RetVals: tools::RetVals_base
-		{
-			optional<string> pub_viewKey_string;
-			optional<string> pub_spendKey_string;
-			bool isSubaddress;
-			optional<string> paymentID_string;
-		};
-		//
-		DecodedAddress_RetVals decodedAddress(const string &addressString, network_type nettype);
-		bool isSubAddress(const string &addressString, network_type nettype);
-		bool isIntegratedAddress(const string &addressString, network_type nettype);
-		//
-		string new_integratedAddrFromStdAddr(const string &std_address_string, const string &short_paymentID, cryptonote::network_type nettype);
-	}
+	return true; // TODO - we don't have the actual fork rules from thje lightwallet server yet
+	//
+	// full wallets do:
+//	uint64_t height, earliest_height;
+//	boost::optional<std::string> result = m_node_rpc_proxy.get_height(height);
+//	throw_on_rpc_response_error(result, "get_info");
+//	result = m_node_rpc_proxy.get_earliest_height(version, earliest_height);
+//	throw_on_rpc_response_error(result, "get_hard_fork_info");
+//
+//	bool close_enough = height >=  earliest_height - early_blocks; // start using the rules that many blocks beforehand
+//	if (close_enough)
+//		LOG_PRINT_L2("Using v" << (unsigned)version << " rules");
+//	else
+//		LOG_PRINT_L2("Not using v" << (unsigned)version << " rules");
+//	return close_enough;	
+}
+//
+// Protocol / Defaults
+uint32_t beldex_fork_rules::fixed_ringsize()
+{
+	return 10; // v17
+}
+uint32_t beldex_fork_rules::fixed_mixinsize()
+{
+	return fixed_ringsize() - 1;
+}
+uint64_t beldex_fork_rules::dust_threshold()
+{
+	return 2000000000;
 }

@@ -73,12 +73,12 @@ namespace serial_bridge_utils
 			return o.str();
 		}
 	};
-	optional<double> none_or_double_from(const boost::property_tree::ptree &json, const string &key);
-	optional<bool> none_or_bool_from(const boost::property_tree::ptree &json, const string &key);
+	boost::optional<double> none_or_double_from(const boost::property_tree::ptree &json, const string &key);
+	boost::optional<bool> none_or_bool_from(const boost::property_tree::ptree &json, const string &key);
 	//../
 	string ret_json_from_root(const boost::property_tree::ptree &root);
 	string error_ret_json_from_message(const string &err_msg);
-	string error_ret_json_from_code(int code, optional<string> err_msg);
+	string error_ret_json_from_code(int code, boost::optional<string> err_msg);
 	//
 	// JSON keys - Ret vals
 	// - - Error

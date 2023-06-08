@@ -41,13 +41,13 @@
 #include <iterator>
 #include <sstream>
 using namespace std;
-#include "string_tools.h"
+#include "epee/string_tools.h"
 using namespace epee;
 using namespace boost;
 #include "cryptonote_format_utils.h"
 #include <boost/property_tree/json_parser.hpp>
 //
-#include "monero_fork_rules.hpp"
+#include "beldex_fork_rules.hpp"
 //
 #include "serial_bridge_utils.hpp"
 using namespace serial_bridge_utils;
@@ -55,11 +55,11 @@ using namespace serial_bridge_utils;
 // Shared code
 //
 // Test suites
- #include "../src/monero_address_utils.hpp"
+ #include "../src/beldex_address_utils.hpp"
 BOOST_AUTO_TEST_CASE(decodeAddress)
 {
 	string address = "43zxvpcj5Xv9SEkNXbMCG7LPQStHMpFCQCmkmR4u5nzjWwq5Xkv5VmGgYEsHXg4ja2FGRD5wMWbBVMijDTqmmVqm93wHGkg";
-	auto result = monero::address_utils::decodedAddress(address, cryptonote::MAINNET);
+	auto result = beldex::address_utils::decodedAddress(address, cryptonote::MAINNET);
 	if (result.err_string) {
 		std::cout << *result.err_string << endl;
 		BOOST_REQUIRE(!result.err_string);
@@ -72,15 +72,15 @@ BOOST_AUTO_TEST_CASE(decodeAddress)
 }
 //
 //
-#include "../src/monero_paymentID_utils.hpp"
+#include "../src/beldex_paymentID_utils.hpp"
 BOOST_AUTO_TEST_CASE(paymentID)
 {
-	string paymentID_string = monero_paymentID_utils::new_short_plain_paymentID_string();
+	string paymentID_string = beldex_paymentID_utils::new_short_plain_paymentID_string();
 	std::cout << "paymentID: paymentID_string: " << paymentID_string << std::endl;
 	BOOST_REQUIRE_MESSAGE(paymentID_string.size() == 16, "Expected payment ID to be of length 16");
 	//
 	crypto::hash parsed__payment_id;
-	bool didParse = monero_paymentID_utils::parse_payment_id(paymentID_string, parsed__payment_id);
+	bool didParse = beldex_paymentID_utils::parse_payment_id(paymentID_string, parsed__payment_id);
 	BOOST_REQUIRE_MESSAGE(didParse, "Couldn't parse payment ID");
 	std::string parsed__payment_id_as_string = epee::string_tools::pod_to_hex(parsed__payment_id);
 	BOOST_REQUIRE_MESSAGE(paymentID_string.compare(parsed__payment_id_as_string), "Expected parsed payment ID to equal original payment ID");
@@ -88,20 +88,20 @@ BOOST_AUTO_TEST_CASE(paymentID)
 }
 //
 //
-#include "../src/monero_key_image_utils.hpp"
+#include "../src/beldex_key_image_utils.hpp"
 BOOST_AUTO_TEST_CASE(keyImage)
 {
 }
 //
 //
-#include "../src/monero_wallet_utils.hpp"
+#include "../src/beldex_wallet_utils.hpp"
 BOOST_AUTO_TEST_CASE(wallet)
 {
 }
 //
 //
-#include "../src/monero_transfer_utils.hpp"
-#include "../src/monero_fork_rules.hpp"
+#include "../src/beldex_transfer_utils.hpp"
+#include "../src/beldex_fork_rules.hpp"
 
 
 string pre_step2__unspent_outs_json = "{\"unspent_outs\": [{\"amount\": \"100000000\", \"public_key\": \"8b1e3ec8a3828f09845e3aec93b19c6788458df39b5045472739b896d7cb7c1b\", \"index\": 0, \"global_index\": 14205118, \"rct\": \"b746bda9aee02e971460efc3f9fe4243be305d724d2fb0ebbdc5f8abf31cdb909668123ad52a68f8\", \"tx_id\": 8225042, \"tx_hash\": \"ac8c1d9d89a289c7b2210c7cf94c5b03435b21e238557c2993246c1743c7cd5b\", \"tx_pub_key\": \"edc238c96cb30a739f56126ae962ac81be43e9aaa8a86313dec3d8ecfb36b7ef\", \"tx_prefix_hash\": \"293d3c03fdffa4e93600e51025287b37f1dc063a0cf22960d28f4ecf542aa516\", \"spend_key_images\": [\"d2d3db0a97ff7cde6774d2e8290559bf3e186e06783cb1ba39890bd31b0305ea\", \"44a97c766f23f1a471138fd1d5561b359f59c767498f829000cc8a17d6488abb\", \"73503ecb8c88eb6803df4f207901f9f57e847971d445bc232df13bb120c462d5\", \"5b6f0c36b6553ee3274037a37aaa7abdf4ad72900ce5ff588fe725652ab98665\", \"1d5447f30b261c8943d92289c80bb00973d363282fef06c086b2b660e88effae\", \"0b4b2e429aa59539de3ef6c55888307c6a6f6ea445c5f8e525a64a2f650ce5db\", \"0ff0bbaa87087449ae55d5df3a175050767c34b0186d53f8e64609b5af32d023\", \"070b01df752d5d9e4ffe54d587d3b63abcb3f7e73cec50047152c209f93372f7\", \"fddc4239b18fbe4232bec937ef5c1b399e7571ad720d6f527fccfe5c81d66c44\", \"0ecfa5b14b41473e368fc163f9b2e4f0118685d075edc01737bc75595cb20949\", \"8bbdf2254d173d77c1557b4d58e287eaca519d5d93a3b000062ebb423b1b59f5\", \"9ebc5f6db9c9d38ac3996ca98b7494dc3ab6c704134a3db845e54c54bc3510e9\", \"d8d7255ca9052b900bd738417b3ea49d0702c4865279ad888c4c4220ecd44f90\", \"5f57135e7f8c79b40c9d20eecd508409f594898c7369e205fed1e62a2be0fe6d\", \"1c8602ffbc7f1836425911d52c79a56f280c82c9ab9464a78bd9d1daa5a70ab3\"], \"height\": 2007212}]}";
@@ -112,11 +112,12 @@ string pre_step2__mix_outs_from_server_json = "{\"mix_outs\": [{\"amount\": \"0\
 BOOST_AUTO_TEST_CASE(transfers__fee)
 {
 	uint8_t fork_version = 16;
-	auto use_fork_rules_fn = monero_fork_rules::make_use_fork_rules_fn(fork_version);
-	uint64_t fee_per_b = 24658;
+	auto use_fork_rules_fn = beldex_fork_rules::make_use_fork_rules_fn(fork_version);
+	uint64_t fee_per_b = 215;
+	uint64_t fee_per_o = 100000;
 	uint32_t priority = 2;
-	uint64_t est_fee = monero_fee_utils::estimated_tx_network_fee(fee_per_b, priority, use_fork_rules_fn);
-	std::cout << "transfers__fee: est_fee with fee_per_b " << fee_per_b << ": " << est_fee << std::endl;
+	uint64_t est_fee = beldex_fee_utils::estimated_tx_network_fee(fee_per_b,fee_per_o, priority, use_fork_rules_fn);
+	std::cout << "transfers__fee: est_fee with fee_per_b " << fee_per_b << ": " << fee_per_o << ": " << est_fee << std::endl;
 	BOOST_REQUIRE(est_fee > 0);
 }
 BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts__use_all_server_mix_outs)
@@ -128,11 +129,11 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	ss << pre_step2__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	//
-	vector<monero_transfer_utils::SpendableOutput> unspent_outs;
-	BOOST_FOREACH(boost::property_tree::ptree::value_type &output_desc, pt.get_child("unspent_outs"))
+	vector<beldex_transfer_utils::SpendableOutput> unspent_outs;
+	for(boost::property_tree::ptree::value_type &output_desc : pt.get_child("unspent_outs"))
 	{
 		assert(output_desc.first.empty()); // array elements have no names
-		monero_transfer_utils::SpendableOutput out{};
+		beldex_transfer_utils::SpendableOutput out{};
 		out.amount = stoull(output_desc.second.get<string>("amount"));
 		out.public_key = output_desc.second.get<string>("public_key");
 		out.rct = output_desc.second.get_optional<string>("rct");
@@ -146,22 +147,22 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		unspent_outs.push_back(std::move(out));
 	}
 	//
-	vector<monero_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
+	vector<beldex_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
 	{
 		boost::property_tree::ptree pt;
 		stringstream ss;
 		ss << pre_step2__mix_outs_from_server_json;
 		boost::property_tree::json_parser::read_json(ss, pt);
 
-		BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_desc, pt.get_child("mix_outs"))
+		for(boost::property_tree::ptree::value_type &mix_out_desc : pt.get_child("mix_outs"))
 		{
 			assert(mix_out_desc.first.empty()); // array elements have no names
-			auto amountAndOuts = monero_transfer_utils::RandomAmountOutputs{};
+			auto amountAndOuts = beldex_transfer_utils::RandomAmountOutputs{};
 			amountAndOuts.amount = stoull(mix_out_desc.second.get<string>("amount"));
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_output_desc, mix_out_desc.second.get_child("outputs"))
+			for(boost::property_tree::ptree::value_type &mix_out_output_desc : mix_out_desc.second.get_child("outputs"))
 			{
 				assert(mix_out_output_desc.first.empty()); // array elements have no names
-				auto amountOutput = monero_transfer_utils::RandomAmountOutput{};
+				auto amountOutput = beldex_transfer_utils::RandomAmountOutput{};
 				amountOutput.global_index = stoull(mix_out_output_desc.second.get<string>("global_index"));
 				amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 				amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
@@ -173,22 +174,22 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	assert(unspent_outs.size() == mix_outs_from_server.size());
 	// *** END SETUP ***
 	//
-	monero_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
-	monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
+	beldex_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
+	beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
 		tie_outs_to_mix_outs_retVals,
 		unspent_outs,
 		mix_outs_from_server,
 		boost::none/*prior_attempt_unspent_outs_to_mix_outs*/
 	);
 	//
-	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == monero_transfer_utils::noError, "expected no error");
+	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == beldex_transfer_utils::noError, "expected no error");
 	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.mix_outs.size() == mix_outs_from_server.size(), "expected resulting mix outs to use for step 2 to be same as server response");
 	//
 	for (size_t i = 0; i < unspent_outs.size(); ++i)
 	{
-		const vector<monero_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
-		const monero_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
-		const vector<monero_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
+		const beldex_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
 		//
 		BOOST_REQUIRE_MESSAGE(mix_outs.size() == tied_mix_outs.size(), "mix outs from server size does not match tied mix outs size");
 		for (size_t j = 0; j < mix_outs.size(); ++j)
@@ -213,11 +214,11 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	ss << pre_step2__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	//
-	vector<monero_transfer_utils::SpendableOutput> unspent_outs;
-	BOOST_FOREACH(boost::property_tree::ptree::value_type &output_desc, pt.get_child("unspent_outs"))
+	vector<beldex_transfer_utils::SpendableOutput> unspent_outs;
+	for(boost::property_tree::ptree::value_type &output_desc : pt.get_child("unspent_outs"))
 	{
 		assert(output_desc.first.empty()); // array elements have no names
-		monero_transfer_utils::SpendableOutput out{};
+		beldex_transfer_utils::SpendableOutput out{};
 		out.amount = stoull(output_desc.second.get<string>("amount"));
 		out.public_key = output_desc.second.get<string>("public_key");
 		out.rct = output_desc.second.get_optional<string>("rct");
@@ -231,8 +232,8 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		unspent_outs.push_back(std::move(out));
 	}
 	//
-	std::vector<monero_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
-	monero_transfer_utils::SpendableOutputToRandomAmountOutputs prior_attempt_unspent_outs_to_mix_outs;
+	std::vector<beldex_transfer_utils::RandomAmountOutputs> mix_outs_from_server;
+	beldex_transfer_utils::SpendableOutputToRandomAmountOutputs prior_attempt_unspent_outs_to_mix_outs;
 	size_t index_of_unspent_out_used_in_prior_attempt = 0;
 	{
 		boost::property_tree::ptree pt;
@@ -241,15 +242,15 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 		boost::property_tree::json_parser::read_json(ss, pt);
 		//
 		size_t i = 0;
-		BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_desc, pt.get_child("mix_outs"))
+		for(boost::property_tree::ptree::value_type &mix_out_desc : pt.get_child("mix_outs"))
 		{
 			assert(mix_out_desc.first.empty()); // array elements have no names
-			auto amountAndOuts = monero_transfer_utils::RandomAmountOutputs{};
+			auto amountAndOuts = beldex_transfer_utils::RandomAmountOutputs{};
 			amountAndOuts.amount = stoull(mix_out_desc.second.get<string>("amount"));
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_output_desc, mix_out_desc.second.get_child("outputs"))
+			for(boost::property_tree::ptree::value_type &mix_out_output_desc : mix_out_desc.second.get_child("outputs"))
 			{
 				assert(mix_out_output_desc.first.empty()); // array elements have no names
-				auto amountOutput = monero_transfer_utils::RandomAmountOutput{};
+				auto amountOutput = beldex_transfer_utils::RandomAmountOutput{};
 				amountOutput.global_index = stoull(mix_out_output_desc.second.get<string>("global_index"));
 				amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 				amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
@@ -270,24 +271,24 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 	assert(unspent_outs.size() == (1 + mix_outs_from_server.size()));
 	// *** END SETUP ***
 	//
-	monero_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
-	monero_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
+	beldex_transfer_utils::Tie_Outs_to_Mix_Outs_RetVals tie_outs_to_mix_outs_retVals;
+	beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_attempts(
 		tie_outs_to_mix_outs_retVals,
 		unspent_outs,
 		mix_outs_from_server,
 		prior_attempt_unspent_outs_to_mix_outs
 	);
 	//
-	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == monero_transfer_utils::noError, "expected no error");
+	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.errCode == beldex_transfer_utils::noError, "expected no error");
 	BOOST_REQUIRE_MESSAGE(tie_outs_to_mix_outs_retVals.mix_outs.size() == unspent_outs.size(), "expected resulting mix outs to use for step 2 to be same as unspent_outs");
 	//
 	for (size_t i = 0; i < unspent_outs.size(); ++i)
 	{
-		const vector<monero_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
-		const monero_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
-		const vector<monero_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &mix_outs = tie_outs_to_mix_outs_retVals.mix_outs[i].outputs;
+		const beldex_transfer_utils::SpendableOutput &unspent_out = unspent_outs[i];
+		const vector<beldex_transfer_utils::RandomAmountOutput> &tied_mix_outs = tie_outs_to_mix_outs_retVals.prior_attempt_unspent_outs_to_mix_outs_new[unspent_out.public_key];
 		//
-		vector<monero_transfer_utils::RandomAmountOutput> prior_tied_mix_outs;
+		vector<beldex_transfer_utils::RandomAmountOutput> prior_tied_mix_outs;
 		if (i == index_of_unspent_out_used_in_prior_attempt)
 			prior_tied_mix_outs = prior_attempt_unspent_outs_to_mix_outs[unspent_out.public_key];
 		//
@@ -306,7 +307,7 @@ BOOST_AUTO_TEST_CASE(pre_step2_tie_unspent_outs_to_mix_outs_for_all_future_tx_at
 			}
 			else
 			{
-				monero_transfer_utils::RandomAmountOutput server_mix_out = mix_outs_from_server[i - 1].outputs[j];
+				beldex_transfer_utils::RandomAmountOutput server_mix_out = mix_outs_from_server[i - 1].outputs[j];
 				BOOST_REQUIRE_MESSAGE(mix_outs[j].global_index == server_mix_out.global_index, "mix outs to mix outs from server did not tie as expected: global index");
 				BOOST_REQUIRE_MESSAGE(mix_outs[j].public_key == server_mix_out.public_key, "mix outs to mix outs from server did not tie as expected: public key");
 				BOOST_REQUIRE_MESSAGE(mix_outs[j].rct == server_mix_out.rct, "mix outs to mix outs from server did not tie as expected: rct");
@@ -343,7 +344,7 @@ string DG_presweep__rand_outs_json = "{\"mix_outs\": [{\"amount\": \"0\", \"outp
 BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -351,21 +352,21 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 	ss << DG_presweep__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	boost::property_tree::ptree unspent_outs = pt.get_child("unspent_outs");
-	optional<boost::property_tree::ptree> prior_attempt_unspent_outs_to_mix_outs = none;
+	boost::optional<boost::property_tree::ptree> prior_attempt_unspent_outs_to_mix_outs = none;
 	//
 	//
 	// Send algorithm:
 	// (Not implemented in C++ b/c the algorithm is split at the points (function interfaces) where requests must be done in e.g. JS-land, and implementing the retry integration in C++ would effectively be emscripten-only since it'd have to call out to C++. Plus this lets us retain the choice to retain synchrony
 	bool tx_must_be_reconstructed = true; // for ease of writing this code, start this off true & structure whole thing as while loop
-	optional<string> fee_actually_needed_string = none;
+	boost::optional<string> fee_actually_needed_string = none;
 	size_t construction_attempt_n = 0;
 	while (tx_must_be_reconstructed) {
 		construction_attempt_n += 1; // merely kept for assertion purposes
 		//
-		optional<string> mixin_string;
-		optional<string> change_amount_string;
-		optional<string> using_fee_string;
-		optional<string> final_total_wo_fee_string;
+		boost::optional<string> mixin_string;
+		boost::optional<string> change_amount_string;
+		boost::optional<string> using_fee_string;
+		boost::optional<string> final_total_wo_fee_string;
 		boost::property_tree::ptree using_outs;
 		{
 			boost::property_tree::ptree root;
@@ -383,7 +384,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 				//
 				// for next round's integration - if it needs to re-enter... arg "prior_attempt_size_calcd_fee" and "prior_attempt_unspent_outs_to_mix_outs"
 				root.put("prior_attempt_size_calcd_fee", *fee_actually_needed_string);
-				BOOST_FOREACH(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc, *prior_attempt_unspent_outs_to_mix_outs)
+				for(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc : *prior_attempt_unspent_outs_to_mix_outs)
 				{
 					string out_pub_key = outs_to_mix_outs_desc.first;
 					cout << "bridge__transfers__send__sweepDust: step1: prior output " << out_pub_key << endl;
@@ -396,17 +397,17 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			ret_stream << ret_string;
 			boost::property_tree::ptree ret_tree;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
-				if ((CreateTransactionErrorCode)*err_code == monero_transfer_utils::needMoreMoneyThanFound) {
-					optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
+				if ((CreateTransactionErrorCode)*err_code == beldex_transfer_utils::needMoreMoneyThanFound) {
+					boost::optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
 					BOOST_REQUIRE(spendable_balance_string != none);
 					BOOST_REQUIRE((*spendable_balance_string).size() > 0);
 		//			uint64_t fee = stoull(*fee_string);
 		//			BOOST_REQUIRE(fee == 135000000);
 					cout << "bridge__transfers__send__sweepDust: step1: needMoreMoneyThanFound: spendable_balance " << *spendable_balance_string << endl;
 					//
-					optional<string> required_balance_string = ret_tree.get_optional<string>("required_balance");
+					boost::optional<string> required_balance_string = ret_tree.get_optional<string>("required_balance");
 					BOOST_REQUIRE(required_balance_string != none);
 					BOOST_REQUIRE((*required_balance_string).size() > 0);
 		//			uint64_t fee = stoull(*fee_string);
@@ -432,7 +433,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			cout << "bridge__transfers__send__sweepDust: step1: using_fee " << *using_fee_string << endl;
 			//
 			using_outs = ret_tree.get_child("using_outs"); // save this for step2
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &output_desc, using_outs)
+			for(boost::property_tree::ptree::value_type &output_desc : using_outs)
 			{
 				assert(output_desc.first.empty()); // array elements have no names
 				cout << "bridge__transfers__send__sweepDust: step1: using_out " << output_desc.second.get<string>("public_key") << endl;
@@ -480,14 +481,14 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			stringstream ret_stream;
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
 			mix_outs = ret_tree.get_child(ret_json_key__send__mix_outs());
 			BOOST_REQUIRE(mix_outs.size() == using_outs.size());
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_desc, mix_outs)
+			for(boost::property_tree::ptree::value_type &mix_out_desc : mix_outs)
 			{
 				assert(mix_out_desc.first.empty()); // array elements have no names
 				cout << "bridge__transfers__send__sweepDust: pre_step2: amount " << mix_out_desc.second.get<string>("amount") << endl;
@@ -495,7 +496,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			}
 			prior_attempt_unspent_outs_to_mix_outs = ret_tree.get_child(ret_json_key__send__prior_attempt_unspent_outs_to_mix_outs_new());
 			size_t outs_to_mix_outs_count = 0;
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc, *prior_attempt_unspent_outs_to_mix_outs)
+			for(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc : *prior_attempt_unspent_outs_to_mix_outs)
 			{
 				++outs_to_mix_outs_count;
 				string out_pub_key = outs_to_mix_outs_desc.first;
@@ -517,7 +518,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			root.put("from_address_string", "43zxvpcj5Xv9SEkNXbMCG7LPQStHMpFCQCmkmR4u5nzjWwq5Xkv5VmGgYEsHXg4ja2FGRD5wMWbBVMijDTqmmVqm93wHGkg");
 			root.put("sec_viewKey_string", "7bea1907940afdd480eff7c4bcadb478a0fbb626df9e3ed74ae801e18f53e104");
 			root.put("sec_spendKey_string", "4e6d43cd03812b803c6f3206689f5fcc910005fc7e91d50d79b0776dbefcd803");
-			root.put("fee_per_b", "24658");
+			root.put("fee_per_b", "666");
+			root.put("fee_per_o", "100000");
 			root.put("fee_mask", "10000");
 			root.put("fork_version", "16");
 			root.put("unlock_time", "0");
@@ -529,8 +531,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 			stringstream ret_stream;
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -547,9 +549,9 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 				BOOST_REQUIRE(construction_attempt_n < 7); // not generally expecting to have to do this more than once or twice - i did see < 3 insufficient once so raised this
 				continue; // proceed to next iteration (re-enter tx construction at step1(II) with fee_actually_needed_string from step2(I))
 			}
-			optional<string> tx_hash = ret_tree.get_optional<string>("tx_hash");
-			optional<string> tx_key_string = ret_tree.get_optional<string>("tx_key");
-			optional<string> serialized_signed_tx = ret_tree.get_optional<string>("serialized_signed_tx");
+			boost::optional<string> tx_hash = ret_tree.get_optional<string>("tx_hash");
+			boost::optional<string> tx_key_string = ret_tree.get_optional<string>("tx_key");
+			boost::optional<string> serialized_signed_tx = ret_tree.get_optional<string>("serialized_signed_tx");
 			BOOST_REQUIRE(serialized_signed_tx != none);
 			BOOST_REQUIRE((*serialized_signed_tx).size() > 0);
 			cout << "bridge__transfers__send__sweepDust: serialized_signed_tx: " << *serialized_signed_tx << endl;
@@ -565,7 +567,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__sweepDust)
 BOOST_AUTO_TEST_CASE(bridge__transfers__send__amountWOnlyDusty)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -574,16 +576,17 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amountWOnlyDusty)
 	boost::property_tree::json_parser::read_json(ss, pt);
 	boost::property_tree::ptree unspent_outs = pt.get_child("unspent_outs");
 	//
-	optional<string> mixin_string;
-	optional<string> change_amount_string;
-	optional<string> using_fee_string;
-	optional<string> final_total_wo_fee_string;
+	boost::optional<string> mixin_string;
+	boost::optional<string> change_amount_string;
+	boost::optional<string> using_fee_string;
+	boost::optional<string> final_total_wo_fee_string;
 	boost::property_tree::ptree using_outs;
 	boost::property_tree::ptree root;
 	root.put("is_sweeping", "false");
 	root.put("payment_id_string", "d2f602b240fbe624"); // optl
 	root.put("sending_amount", "1000000");
-	root.put("fee_per_b", "24658");
+	root.put("fee_per_b", "666");
+	root.put("fee_per_o", "100000");
 	root.put("fee_mask", "10000");
 	root.put("fork_version", "16");
 	root.put("priority", "1");
@@ -594,7 +597,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amountWOnlyDusty)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+	boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
 	BOOST_REQUIRE_MESSAGE(err_code == none, "Expected no error");
 	BOOST_REQUIRE_MESSAGE(ret_tree.get<string>("using_fee") == string("39380000"), "Expected using_fee of 39380000");
 	BOOST_REQUIRE_MESSAGE(ret_tree.get<string>("final_total_wo_fee") == string("1000000"), "Expected final_total_wo_fee of 1000000");
@@ -607,7 +610,7 @@ string DG_postsweep__rand_outs_json = "{\"mix_outs\": [{\"amount\": \"0\", \"out
 BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -615,20 +618,20 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 	ss << DG_postsweep__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	boost::property_tree::ptree unspent_outs = pt.get_child("unspent_outs");
-	optional<boost::property_tree::ptree> prior_attempt_unspent_outs_to_mix_outs = none;
+	boost::optional<boost::property_tree::ptree> prior_attempt_unspent_outs_to_mix_outs = none;
 	//
 	//
 	// Send algorithm:
 	bool tx_must_be_reconstructed = true; // for ease of writing this code, start this off true & structure whole thing as while loop
-	optional<string> fee_actually_needed_string = none;
+	boost::optional<string> fee_actually_needed_string = none;
 	size_t construction_attempt_n = 0;
 	while (tx_must_be_reconstructed) {
 		construction_attempt_n += 1; // merely kept for assertion purposes
 		//
-		optional<string> mixin_string;
-		optional<string> change_amount_string;
-		optional<string> using_fee_string;
-		optional<string> final_total_wo_fee_string;
+		boost::optional<string> mixin_string;
+		boost::optional<string> change_amount_string;
+		boost::optional<string> using_fee_string;
+		boost::optional<string> final_total_wo_fee_string;
 		boost::property_tree::ptree using_outs;
 		{
 			boost::property_tree::ptree root;
@@ -646,7 +649,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 				//
 				// for next round's integration - if it needs to re-enter... arg "prior_attempt_size_calcd_fee" and "prior_attempt_unspent_outs_to_mix_outs"
 				root.put("prior_attempt_size_calcd_fee", *fee_actually_needed_string);
-				BOOST_FOREACH(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc, *prior_attempt_unspent_outs_to_mix_outs)
+				for(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc : *prior_attempt_unspent_outs_to_mix_outs)
 				{
 					string out_pub_key = outs_to_mix_outs_desc.first;
 					cout << "bridge__transfers__send__sweepDust: step1: prior output " << out_pub_key << endl;
@@ -659,17 +662,17 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			ret_stream << ret_string;
 			boost::property_tree::ptree ret_tree;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
-				if ((CreateTransactionErrorCode)*err_code == monero_transfer_utils::needMoreMoneyThanFound) {
-					optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
+				if ((CreateTransactionErrorCode)*err_code == beldex_transfer_utils::needMoreMoneyThanFound) {
+					boost::optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
 					BOOST_REQUIRE(spendable_balance_string != none);
 					BOOST_REQUIRE((*spendable_balance_string).size() > 0);
 					//			uint64_t fee = stoull(*fee_string);
 					//			BOOST_REQUIRE(fee == 135000000);
 					cout << "bridge__transfers__send__amount: step1: needMoreMoneyThanFound: spendable_balance " << *spendable_balance_string << endl;
 					//
-					optional<string> required_balance_string = ret_tree.get_optional<string>("required_balance");
+					boost::optional<string> required_balance_string = ret_tree.get_optional<string>("required_balance");
 					BOOST_REQUIRE(required_balance_string != none);
 					BOOST_REQUIRE((*required_balance_string).size() > 0);
 					//			uint64_t fee = stoull(*fee_string);
@@ -695,7 +698,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			cout << "bridge__transfers__send__amount: step1: using_fee " << *using_fee_string << endl;
 			//
 			using_outs = ret_tree.get_child("using_outs"); // save this for step2
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &output_desc, using_outs)
+			for(boost::property_tree::ptree::value_type &output_desc : using_outs)
 			{
 				assert(output_desc.first.empty()); // array elements have no names
 				cout << "bridge__transfers__send__amount: step1: using_out " << output_desc.second.get<string>("public_key") << endl;
@@ -743,14 +746,14 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			stringstream ret_stream;
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
 			mix_outs = ret_tree.get_child(ret_json_key__send__mix_outs());
 			BOOST_REQUIRE(mix_outs.size() == using_outs.size());
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_desc, mix_outs)
+			for(boost::property_tree::ptree::value_type &mix_out_desc : mix_outs)
 			{
 				assert(mix_out_desc.first.empty()); // array elements have no names
 				cout << "bridge__transfers__send__amount: pre_step2: amount " << mix_out_desc.second.get<string>("amount") << endl;
@@ -758,7 +761,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			}
 			prior_attempt_unspent_outs_to_mix_outs = ret_tree.get_child(ret_json_key__send__prior_attempt_unspent_outs_to_mix_outs_new());
 			size_t outs_to_mix_outs_count = 0;
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc, *prior_attempt_unspent_outs_to_mix_outs)
+			for(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc : *prior_attempt_unspent_outs_to_mix_outs)
 			{
 				++outs_to_mix_outs_count;
 				string out_pub_key = outs_to_mix_outs_desc.first;
@@ -781,7 +784,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			root.put("from_address_string", "43zxvpcj5Xv9SEkNXbMCG7LPQStHMpFCQCmkmR4u5nzjWwq5Xkv5VmGgYEsHXg4ja2FGRD5wMWbBVMijDTqmmVqm93wHGkg");
 			root.put("sec_viewKey_string", "7bea1907940afdd480eff7c4bcadb478a0fbb626df9e3ed74ae801e18f53e104");
 			root.put("sec_spendKey_string", "4e6d43cd03812b803c6f3206689f5fcc910005fc7e91d50d79b0776dbefcd803");
-			root.put("fee_per_b", "24658");
+			root.put("fee_per_b", "666");
+			root.put("fee_per_o", "100000");
 			root.put("fee_mask", "10000");
 			root.put("fork_version", "16");
 			root.put("unlock_time", "0");
@@ -793,8 +797,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 			stringstream ret_stream;
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -811,10 +815,10 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send__amount)
 				BOOST_REQUIRE(construction_attempt_n < 3); // not generally expecting to have to do this more than once or twice
 				continue; // proceed to next iteration (re-enter tx construction at step1(II) with fee_actually_needed_string from step2(I))
 			}
-			optional<string> tx_hash = ret_tree.get_optional<string>("tx_hash");
-			optional<string> tx_key_string = ret_tree.get_optional<string>("tx_key");
-			optional<string> tx_pub_key_string = ret_tree.get_optional<string>("tx_pub_key");
-			optional<string> serialized_signed_tx = ret_tree.get_optional<string>("serialized_signed_tx");
+			boost::optional<string> tx_hash = ret_tree.get_optional<string>("tx_hash");
+			boost::optional<string> tx_key_string = ret_tree.get_optional<string>("tx_key");
+			boost::optional<string> tx_pub_key_string = ret_tree.get_optional<string>("tx_pub_key");
+			boost::optional<string> serialized_signed_tx = ret_tree.get_optional<string>("serialized_signed_tx");
 			BOOST_REQUIRE(serialized_signed_tx != none);
 			BOOST_REQUIRE((*serialized_signed_tx).size() > 0);
 			cout << "bridge__transfers__send__amount: serialized_signed_tx: " << *serialized_signed_tx << endl;
@@ -844,23 +848,23 @@ BOOST_AUTO_TEST_CASE(bridged__decode_address)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
+	boost::optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
 	BOOST_REQUIRE(pub_viewKey_string != none);
 	BOOST_REQUIRE((*pub_viewKey_string).size() > 0);
 	cout << "bridged__decode_address: pub_viewKey_string: " << *pub_viewKey_string << endl;
-	optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
+	boost::optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
 	BOOST_REQUIRE(pub_spendKey_string != none);
 	BOOST_REQUIRE((*pub_spendKey_string).size() > 0);
 	cout << "bridged__decode_address: pub_spendKey_string: " << *pub_spendKey_string << endl;
-	optional<string> paymentID_string = ret_tree.get_optional<string>("paymentId");
+	boost::optional<string> paymentID_string = ret_tree.get_optional<string>("paymentId");
 	BOOST_REQUIRE(paymentID_string != none);
 	BOOST_REQUIRE((*paymentID_string).size() > 0);
 	cout << "bridged__decode_address: paymentID_string: " << *paymentID_string << endl;
-	optional<bool> isSubaddress = ret_tree.get_optional<bool>("isSubaddress");
+	boost::optional<bool> isSubaddress = ret_tree.get_optional<bool>("isSubaddress");
 	BOOST_REQUIRE(isSubaddress != none);
 	BOOST_REQUIRE(*isSubaddress == false);
 	cout << "bridged__decode_address: isSubaddress: " << *isSubaddress << endl;
@@ -931,39 +935,39 @@ BOOST_AUTO_TEST_CASE(bridged__new_wallet)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> mnemonic_string = ret_tree.get_optional<string>("mnemonic");
+	boost::optional<string> mnemonic_string = ret_tree.get_optional<string>("mnemonic");
 	BOOST_REQUIRE(mnemonic_string != none);
 	BOOST_REQUIRE((*mnemonic_string).size() > 0);
 	cout << "bridged__new_wallet: mnemonic: " << *mnemonic_string << endl;
-	optional<string> mnemonic_language = ret_tree.get_optional<string>("mnemonicLanguage");
+	boost::optional<string> mnemonic_language = ret_tree.get_optional<string>("mnemonicLanguage");
 	BOOST_REQUIRE(mnemonic_language != none);
 	BOOST_REQUIRE((*mnemonic_language).size() > 0);
 	cout << "bridged__new_wallet: mnemonic_language: " << *mnemonic_language << endl;
-	optional<string> sec_seed_string = ret_tree.get_optional<string>("seed");
+	boost::optional<string> sec_seed_string = ret_tree.get_optional<string>("seed");
 	BOOST_REQUIRE(sec_seed_string != none);
 	BOOST_REQUIRE((*sec_seed_string).size() > 0);
 	cout << "bridged__new_wallet: sec_seed: " << *sec_seed_string << endl;
-	optional<string> address_string = ret_tree.get_optional<string>("address");
+	boost::optional<string> address_string = ret_tree.get_optional<string>("address");
 	BOOST_REQUIRE(address_string != none);
 	BOOST_REQUIRE((*address_string).size() > 0);
 	cout << "bridged__new_wallet: address: " << *address_string << endl;
-	optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
+	boost::optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
 	BOOST_REQUIRE(pub_viewKey_string != none);
 	BOOST_REQUIRE((*pub_viewKey_string).size() > 0);
 	cout << "bridged__new_wallet: pub_viewKey_string: " << *pub_viewKey_string << endl;
-	optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
+	boost::optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
 	BOOST_REQUIRE(pub_spendKey_string != none);
 	BOOST_REQUIRE((*pub_spendKey_string).size() > 0);
 	cout << "bridged__new_wallet: pub_spendKey_string: " << *pub_spendKey_string << endl;
-	optional<string> sec_viewKey_string = ret_tree.get_optional<string>("privateViewKey");
+	boost::optional<string> sec_viewKey_string = ret_tree.get_optional<string>("privateViewKey");
 	BOOST_REQUIRE(sec_viewKey_string != none);
 	BOOST_REQUIRE((*sec_viewKey_string).size() > 0);
 	cout << "bridged__new_wallet: sec_viewKey_string: " << *sec_viewKey_string << endl;
-	optional<string> sec_spendKey_string = ret_tree.get_optional<string>("privateSpendKey");
+	boost::optional<string> sec_spendKey_string = ret_tree.get_optional<string>("privateSpendKey");
 	BOOST_REQUIRE(sec_spendKey_string != none);
 	BOOST_REQUIRE((*sec_spendKey_string).size() > 0);
 	cout << "bridged__new_wallet: sec_spendKey_string: " << *sec_spendKey_string << endl;
@@ -1007,11 +1011,11 @@ BOOST_AUTO_TEST_CASE(bridged__mnemonic_from_seed)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> mnemonic_string = ret_tree.get_optional<string>("retVal");
+	boost::optional<string> mnemonic_string = ret_tree.get_optional<string>("retVal");
 	BOOST_REQUIRE(mnemonic_string != none);
 	BOOST_REQUIRE((*mnemonic_string).size() > 0);
 	cout << "bridged__mnemonic_from_seed: mnemonic: " << *mnemonic_string << endl;
@@ -1030,36 +1034,36 @@ BOOST_AUTO_TEST_CASE(bridged__seed_and_keys_from_mnemonic)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> mnemonic_language = ret_tree.get_optional<string>("mnemonicLanguage");
+	boost::optional<string> mnemonic_language = ret_tree.get_optional<string>("mnemonicLanguage");
 	BOOST_REQUIRE(mnemonic_language != none);
 	BOOST_REQUIRE((*mnemonic_language).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: mnemonic_language: " << *mnemonic_language << endl;
-	optional<string> sec_seed_string = ret_tree.get_optional<string>("seed");
+	boost::optional<string> sec_seed_string = ret_tree.get_optional<string>("seed");
 	BOOST_REQUIRE(sec_seed_string != none);
 	BOOST_REQUIRE((*sec_seed_string).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: sec_seed: " << *sec_seed_string << endl;
-	optional<string> address_string = ret_tree.get_optional<string>("address");
+	boost::optional<string> address_string = ret_tree.get_optional<string>("address");
 	BOOST_REQUIRE(address_string != none);
 	BOOST_REQUIRE((*address_string).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: address: " << *address_string << endl;
 	BOOST_REQUIRE((*address_string) == "43zxvpcj5Xv9SEkNXbMCG7LPQStHMpFCQCmkmR4u5nzjWwq5Xkv5VmGgYEsHXg4ja2FGRD5wMWbBVMijDTqmmVqm93wHGkg");
-	optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
+	boost::optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
 	BOOST_REQUIRE(pub_viewKey_string != none);
 	BOOST_REQUIRE((*pub_viewKey_string).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: pub_viewKey_string: " << *pub_viewKey_string << endl;
-	optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
+	boost::optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
 	BOOST_REQUIRE(pub_spendKey_string != none);
 	BOOST_REQUIRE((*pub_spendKey_string).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: pub_spendKey_string: " << *pub_spendKey_string << endl;
-	optional<string> sec_viewKey_string = ret_tree.get_optional<string>("privateViewKey");
+	boost::optional<string> sec_viewKey_string = ret_tree.get_optional<string>("privateViewKey");
 	BOOST_REQUIRE(sec_viewKey_string != none);
 	BOOST_REQUIRE((*sec_viewKey_string).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: sec_viewKey_string: " << *sec_viewKey_string << endl;
-	optional<string> sec_spendKey_string = ret_tree.get_optional<string>("privateSpendKey");
+	boost::optional<string> sec_spendKey_string = ret_tree.get_optional<string>("privateSpendKey");
 	BOOST_REQUIRE(sec_spendKey_string != none);
 	BOOST_REQUIRE((*sec_spendKey_string).size() > 0);
 	cout << "bridged__seed_and_keys_from_mnemonic: sec_spendKey_string: " << *sec_spendKey_string << endl;
@@ -1080,10 +1084,10 @@ BOOST_AUTO_TEST_CASE(bridged__validate_components_for_login__subaddress)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	BOOST_REQUIRE(err_string != none);
 	BOOST_REQUIRE((*err_string).compare("Can't log in with a sub-address") == 0);
-	optional<bool> isValid = ret_tree.get_optional<bool>("isValid");
+	boost::optional<bool> isValid = ret_tree.get_optional<bool>("isValid");
 	BOOST_REQUIRE(isValid == none || *isValid == false);
 }
 BOOST_AUTO_TEST_CASE(bridged__validate_components_for_login)
@@ -1102,21 +1106,21 @@ BOOST_AUTO_TEST_CASE(bridged__validate_components_for_login)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<bool> isValid = ret_tree.get_optional<bool>("isValid");
+	boost::optional<bool> isValid = ret_tree.get_optional<bool>("isValid");
 	BOOST_REQUIRE(isValid == true);
 	cout << "bridged__validate_components_for_login: isValid: " << isValid << endl;
-	optional<bool> isInViewOnlyMode = ret_tree.get_optional<bool>("isViewOnly");
+	boost::optional<bool> isInViewOnlyMode = ret_tree.get_optional<bool>("isViewOnly");
 	BOOST_REQUIRE(isInViewOnlyMode == false);
 	cout << "bridged__validate_components_for_login: isInViewOnlyMode: " << isInViewOnlyMode << endl;
-	optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
+	boost::optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
 	BOOST_REQUIRE(pub_viewKey_string != none);
 	BOOST_REQUIRE((*pub_viewKey_string).size() > 0);
 	cout << "bridged__validate_components_for_login: pub_viewKey_string: " << *pub_viewKey_string << endl;
-	optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
+	boost::optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
 	BOOST_REQUIRE(pub_spendKey_string != none);
 	BOOST_REQUIRE((*pub_spendKey_string).size() > 0);
 	cout << "bridged__validate_components_for_login: pub_spendKey_string: " << *pub_spendKey_string << endl;
@@ -1126,20 +1130,21 @@ BOOST_AUTO_TEST_CASE(bridged__estimated_tx_network_fee)
 	using namespace serial_bridge;
 	//
 	boost::property_tree::ptree root;
-	root.put("fee_per_b", "24658");
-	root.put("fork_version", "16");
+	root.put("fee_per_b", "666");
+	root.put("fee_per_o", "100000");
+	root.put("fork_version", "17");
 	root.put("priority", "2");
 	//
-	auto ret_string = serial_bridge::estimated_tx_network_fee(root.get<string>("priority"), root.get<string>("fee_per_b"), root.get<string>("fork_version"));
+	auto ret_string = serial_bridge::estimated_tx_network_fee(root.get<string>("priority"), root.get<string>("fee_per_b"),root.get<string>("fee_per_o"), root.get<string>("fork_version"));
 	stringstream ret_stream;
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> fee_string = ret_tree.get_optional<string>("retVal");
+	boost::optional<string> fee_string = ret_tree.get_optional<string>("retVal");
 	BOOST_REQUIRE(fee_string != none);
 	BOOST_REQUIRE((*fee_string).size() > 0);
 	uint64_t fee = stoull(*fee_string);
@@ -1163,11 +1168,11 @@ BOOST_AUTO_TEST_CASE(bridged__generate_key_image)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> key_image_string = ret_tree.get_optional<string>("retVal");
+	boost::optional<string> key_image_string = ret_tree.get_optional<string>("retVal");
 	BOOST_REQUIRE(key_image_string != none);
 	BOOST_REQUIRE((*key_image_string).size() > 0);
 	BOOST_REQUIRE(*key_image_string == "ae30ee23051dc0bdf10303fbd3b7d8035a958079eb66516b1740f2c9b02c804e");
@@ -1187,29 +1192,29 @@ BOOST_AUTO_TEST_CASE(bridged__address_and_keys_from_seed)
 	ret_stream << ret_string;
 	boost::property_tree::ptree ret_tree;
 	boost::property_tree::read_json(ret_stream, ret_tree);
-	optional<string> err_string = ret_tree.get_optional<string>("err_msg");
+	boost::optional<string> err_string = ret_tree.get_optional<string>("err_msg");
 	if (err_string != none) {
 		BOOST_REQUIRE_MESSAGE(false, *err_string);
 	}
-	optional<string> address_string = ret_tree.get_optional<string>("address");
+	boost::optional<string> address_string = ret_tree.get_optional<string>("address");
 	BOOST_REQUIRE(address_string != none);
 	BOOST_REQUIRE((*address_string).size() > 0);
 	cout << "bridged__address_and_keys_from_seed: address: " << *address_string << endl;
 	BOOST_REQUIRE(*address_string == "43zxvpcj5Xv9SEkNXbMCG7LPQStHMpFCQCmkmR4u5nzjWwq5Xkv5VmGgYEsHXg4ja2FGRD5wMWbBVMijDTqmmVqm93wHGkg");
-	optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
+	boost::optional<string> pub_viewKey_string = ret_tree.get_optional<string>("publicViewKey");
 	BOOST_REQUIRE(pub_viewKey_string != none);
 	BOOST_REQUIRE((*pub_viewKey_string).size() > 0);
 	cout << "bridged__address_and_keys_from_seed: pub_viewKey_string: " << *pub_viewKey_string << endl;
-	optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
+	boost::optional<string> pub_spendKey_string = ret_tree.get_optional<string>("publicSpendKey");
 	BOOST_REQUIRE(pub_spendKey_string != none);
 	BOOST_REQUIRE((*pub_spendKey_string).size() > 0);
 	cout << "bridged__address_and_keys_from_seed: pub_spendKey_string: " << *pub_spendKey_string << endl;
-	optional<string> sec_viewKey_string = ret_tree.get_optional<string>("privateViewKey");
+	boost::optional<string> sec_viewKey_string = ret_tree.get_optional<string>("privateViewKey");
 	BOOST_REQUIRE(sec_viewKey_string != none);
 	BOOST_REQUIRE((*sec_viewKey_string).size() > 0);
 	BOOST_REQUIRE(*sec_viewKey_string == "7bea1907940afdd480eff7c4bcadb478a0fbb626df9e3ed74ae801e18f53e104");
 	cout << "bridged__address_and_keys_from_seed: sec_viewKey_string: " << *sec_viewKey_string << endl;
-	optional<string> sec_spendKey_string = ret_tree.get_optional<string>("privateSpendKey");
+	boost::optional<string> sec_spendKey_string = ret_tree.get_optional<string>("privateSpendKey");
 	BOOST_REQUIRE(sec_spendKey_string != none);
 	BOOST_REQUIRE((*sec_spendKey_string).size() > 0);
 	BOOST_REQUIRE(*sec_spendKey_string == "4e6d43cd03812b803c6f3206689f5fcc910005fc7e91d50d79b0776dbefcd803");
@@ -1228,7 +1233,7 @@ string OM_stagenet__rand_outs_json = "{\"mix_outs\": [{\"amount\": \"0\", \"outp
 BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 {
 	using namespace serial_bridge;
-	using namespace monero_transfer_utils;
+	using namespace beldex_transfer_utils;
 	//
 	// this being input as JSON merely for convenience
 	boost::property_tree::ptree pt;
@@ -1236,27 +1241,28 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 	ss << OM_stagenet__unspent_outs_json;
 	boost::property_tree::json_parser::read_json(ss, pt);
 	boost::property_tree::ptree unspent_outs = pt.get_child("unspent_outs");
-	optional<boost::property_tree::ptree> prior_attempt_unspent_outs_to_mix_outs = none;
+	boost::optional<boost::property_tree::ptree> prior_attempt_unspent_outs_to_mix_outs = none;
 	//
 	//
 	// Send algorithm:
 	bool tx_must_be_reconstructed = true; // for ease of writing this code, start this off true & structure whole thing as while loop
-	optional<string> fee_actually_needed_string = none;
+	boost::optional<string> fee_actually_needed_string = none;
 	size_t construction_attempt_n = 0;
 	while (tx_must_be_reconstructed) {
 		construction_attempt_n += 1; // merely kept for assertion purposes
 		//
-		optional<string> mixin_string;
-		optional<string> change_amount_string;
-		optional<string> using_fee_string;
-		optional<string> final_total_wo_fee_string;
+		boost::optional<string> mixin_string;
+		boost::optional<string> change_amount_string;
+		boost::optional<string> using_fee_string;
+		boost::optional<string> final_total_wo_fee_string;
 		boost::property_tree::ptree using_outs;
 		{
 			boost::property_tree::ptree root;
 			root.put("is_sweeping", "false");
 			root.put("payment_id_string", "d2f602b240fbe624"); // optl
 			root.put("sending_amount", "1000000000000");
-			root.put("fee_per_b", "166333");
+			root.put("fee_per_b", "666");
+			root.put("fee_per_o", "100000");
 			root.put("fee_mask", "10000");
 			root.put("fork_version", "16");
 			root.put("priority", "1");
@@ -1267,7 +1273,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 				//
 				// for next round's integration - if it needs to re-enter... arg "prior_attempt_size_calcd_fee" and "prior_attempt_unspent_outs_to_mix_outs"
 				root.put("prior_attempt_size_calcd_fee", *fee_actually_needed_string);
-				BOOST_FOREACH(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc, *prior_attempt_unspent_outs_to_mix_outs)
+				for(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc : *prior_attempt_unspent_outs_to_mix_outs)
 				{
 					string out_pub_key = outs_to_mix_outs_desc.first;
 					cout << "bridge__transfers__send__sweepDust: step1: prior output " << out_pub_key << endl;
@@ -1280,17 +1286,17 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			ret_stream << ret_string;
 			boost::property_tree::ptree ret_tree;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
-				if ((CreateTransactionErrorCode)*err_code == monero_transfer_utils::needMoreMoneyThanFound) {
-					optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
+				if ((CreateTransactionErrorCode)*err_code == beldex_transfer_utils::needMoreMoneyThanFound) {
+					boost::optional<string> spendable_balance_string = ret_tree.get_optional<string>("spendable_balance");
 					BOOST_REQUIRE(spendable_balance_string != none);
 					BOOST_REQUIRE((*spendable_balance_string).size() > 0);
 					//			uint64_t fee = stoull(*fee_string);
 					//			BOOST_REQUIRE(fee == 135000000);
 					cout << "bridge__transfers__send_stagenet_coinbase: step1: needMoreMoneyThanFound: spendable_balance " << *spendable_balance_string << endl;
 					//
-					optional<string> required_balance_string = ret_tree.get_optional<string>("required_balance");
+					boost::optional<string> required_balance_string = ret_tree.get_optional<string>("required_balance");
 					BOOST_REQUIRE(required_balance_string != none);
 					BOOST_REQUIRE((*required_balance_string).size() > 0);
 					//			uint64_t fee = stoull(*fee_string);
@@ -1316,7 +1322,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			cout << "bridge__transfers__send_stagenet_coinbase: step1: using_fee " << *using_fee_string << endl;
 			//
 			using_outs = ret_tree.get_child("using_outs"); // save this for step2
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &output_desc, using_outs)
+			for(boost::property_tree::ptree::value_type &output_desc : using_outs)
 			{
 				assert(output_desc.first.empty()); // array elements have no names
 				cout << "bridge__transfers__send_stagenet_coinbase: step1: using_out " << output_desc.second.get<string>("public_key") << endl;
@@ -1364,14 +1370,14 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			stringstream ret_stream;
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>(ret_json_key__any__err_code());
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
 			mix_outs = ret_tree.get_child(ret_json_key__send__mix_outs());
 			BOOST_REQUIRE(mix_outs.size() == using_outs.size());
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &mix_out_desc, mix_outs)
+			for(boost::property_tree::ptree::value_type &mix_out_desc : mix_outs)
 			{
 				assert(mix_out_desc.first.empty()); // array elements have no names
 				cout << "bridge__transfers__send__amount: pre_step2: amount " << mix_out_desc.second.get<string>("amount") << endl;
@@ -1379,7 +1385,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			}
 			prior_attempt_unspent_outs_to_mix_outs = ret_tree.get_child(ret_json_key__send__prior_attempt_unspent_outs_to_mix_outs_new());
 			size_t outs_to_mix_outs_count = 0;
-			BOOST_FOREACH(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc, *prior_attempt_unspent_outs_to_mix_outs)
+			for(boost::property_tree::ptree::value_type &outs_to_mix_outs_desc : *prior_attempt_unspent_outs_to_mix_outs)
 			{
 				++outs_to_mix_outs_count;
 				string out_pub_key = outs_to_mix_outs_desc.first;
@@ -1396,7 +1402,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			root.add_child("using_outs", using_outs); // from step1
 			//
 			root.put("payment_id_string", "d2f602b240fbe624"); // optl
-			root.put("nettype_string", string_from_nettype(STAGENET));
+			root.put("nettype_string", string_from_nettype(DEVNET));
 			root.put("to_address_string", "57Hx8QpLUSMjhgoCNkvJ2Ch91mVyxcffESCprnRPrtbphMCv8iGUEfCUJxrpUWUeWrS9vPWnFrnMmTwnFpSKJrSKNuaXc5q");
 			root.put("from_address_string", "56bY2v2RJZNEvrKdYuwG73Q2idshQyGc5fV74BZqoVv72MPSBEakPbfWYtQH4PLGhk3uaCjNZ81XJ7o9pimAXzQFCv7bxxf");
 			root.put("sec_viewKey_string", "9ef8e116d2c774b207a2dd6a234dab8f5d54becc04aa26ccbd6f1f67e8427308");
@@ -1413,8 +1419,8 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 			stringstream ret_stream;
 			ret_stream << ret_string;
 			boost::property_tree::read_json(ret_stream, ret_tree);
-			optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
-			if (err_code != none && (CreateTransactionErrorCode)*err_code != monero_transfer_utils::noError) {
+			boost::optional<uint32_t> err_code = ret_tree.get_optional<uint32_t>("err_code");
+			if (err_code != none && (CreateTransactionErrorCode)*err_code != beldex_transfer_utils::noError) {
 				auto err_msg = err_msg_from_err_code__create_transaction((CreateTransactionErrorCode)*err_code);
 				BOOST_REQUIRE_MESSAGE(false, err_msg);
 			}
@@ -1431,9 +1437,9 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 				BOOST_REQUIRE(construction_attempt_n < 3); // not generally expecting to have to do this more than once or twice
 				continue; // proceed to next iteration (re-enter tx construction at step1(II) with fee_actually_needed_string from step2(I))
 			}
-			optional<string> tx_hash = ret_tree.get_optional<string>("tx_hash");
-			optional<string> tx_key_string = ret_tree.get_optional<string>("tx_key");
-			optional<string> serialized_signed_tx = ret_tree.get_optional<string>("serialized_signed_tx");
+			boost::optional<string> tx_hash = ret_tree.get_optional<string>("tx_hash");
+			boost::optional<string> tx_key_string = ret_tree.get_optional<string>("tx_key");
+			boost::optional<string> serialized_signed_tx = ret_tree.get_optional<string>("serialized_signed_tx");
 			BOOST_REQUIRE(serialized_signed_tx != none);
 			BOOST_REQUIRE((*serialized_signed_tx).size() > 0);
 			cout << "bridge__transfers__send_stagenet_coinbase: serialized_signed_tx: " << *serialized_signed_tx << endl;
@@ -1451,7 +1457,7 @@ BOOST_AUTO_TEST_CASE(bridge__transfers__send_stagenet_coinbase)
 //BOOST_AUTO_TEST_CASE(emscr_bridge__send_funds__sweep)
 //{
 //	using namespace emscr_async_bridge;
-//	using namespace monero_transfer_utils;
+//	using namespace beldex_transfer_utils;
 //	//
 //	boost::property_tree::ptree root;
 //	root.put("task_id", "some guid");

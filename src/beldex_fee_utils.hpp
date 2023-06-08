@@ -1,5 +1,5 @@
 //
-//  monero_fee_utils.hpp
+//  beldex_fee_utils.hpp
 //  Copyright (c) 2014-2019, MyMonero.com
 //
 //  All rights reserved.
@@ -29,49 +29,54 @@
 //  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#ifndef monero_fee_utils_hpp
-#define monero_fee_utils_hpp
+#ifndef beldex_fee_utils_hpp
+#define beldex_fee_utils_hpp
 //
 #include <boost/optional.hpp>
 //
-#include "string_tools.h"
+#include "epee/string_tools.h"
 //
 #include "crypto.h"
 #include "cryptonote_basic.h"
 #include "cryptonote_format_utils.h"
 //
-#include "monero_fork_rules.hpp"
+#include "beldex_fork_rules.hpp"
 //
-namespace monero_fee_utils
+namespace beldex_fee_utils
 {
 	using namespace std;
 	using namespace boost;
 	using namespace cryptonote;
-	using namespace monero_fork_rules;
+	using namespace beldex_fork_rules;
 	using namespace crypto;
 	//
 	uint32_t default_priority();
 	//
 	uint64_t get_upper_transaction_weight_limit(uint64_t upper_transaction_weight_limit__or_0_for_default, use_fork_rules_fn_type use_fork_rules_fn);
 	uint64_t get_fee_multiplier(uint32_t priority, uint32_t default_priority, int fee_algorithm, use_fork_rules_fn_type use_fork_rules_fn);
+	uint64_t get_fee_percent(uint32_t priority, txtype type);
 	int get_fee_algorithm(use_fork_rules_fn_type use_fork_rules_fn);
 	uint64_t get_base_fee(uint64_t fee_per_b);
 	//
-	uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask);
+	uint64_t estimate_fee(bool use_per_byte_fee, bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag, uint64_t fee_per_b,uint64_t fee_per_o, uint64_t fee_multiplier, uint64_t fee_quantization_mask);
 	//
-	uint64_t calculate_fee_from_weight(uint64_t base_fee, uint64_t weight, uint64_t fee_multiplier, uint64_t fee_quantization_mask);
-	uint64_t calculate_fee(bool use_per_byte_fee, const cryptonote::transaction &tx, size_t blob_size, uint64_t base_fee, uint64_t fee_multiplier, uint64_t fee_quantization_mask);
+	uint64_t calculate_fee_from_weight(uint64_t fee_per_b, uint64_t fee_per_o, uint64_t weight,int outputs, uint64_t fee_multiplier, uint64_t fee_quantization_mask);
+	uint64_t calculate_fee(bool use_per_byte_fee, const cryptonote::transaction &tx, size_t blob_size, uint64_t fee_per_b,uint64_t fee_per_o, uint64_t fee_multiplier, uint64_t fee_quantization_mask);
 	//
 	/*Added*/ uint64_t calculate_fee_from_size(uint64_t fee_per_b, size_t bytes, uint64_t fee_multiplier);
 	//
+
+	uint64_t calculate_fee_from_size_1(uint64_t fee_per_b, uint64_t fee_per_o, size_t bytes, uint64_t pct);
+	
 	size_t estimate_rct_tx_size(int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag);
 	uint64_t estimate_tx_weight(bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag);
 	size_t estimate_tx_size(bool use_rct, int n_inputs, int mixin, int n_outputs, size_t extra_size, bool bulletproof, bool clsag);
 	uint64_t estimated_tx_network_fee( // convenience function for size + calc
 		uint64_t fee_per_b,
-		uint32_t priority, // when priority=0, falls back to monero_fee_utils::default_priority()
+		uint64_t fee_per_o,
+		uint32_t priority, // when priority=0, falls back to beldex_fee_utils::default_priority()
 		use_fork_rules_fn_type use_fork_rules_fn // this is extracted to a function so that implementations can optionally query the daemon (although this presently implies that such a call remains blocking)
 	);
 }
 
-#endif /* monero_fee_utils_hpp */
+#endif /* beldex_fee_utils_hpp */
