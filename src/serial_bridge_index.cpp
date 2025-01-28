@@ -555,9 +555,11 @@ string serial_bridge::send_step2__try_create_transaction(const string &args_stri
 		fork_version = stoul(*optl__fork_version_string);
 	}
 	Send_Step2_RetVals retVals;
+	boost::optional<master_node_data> mn_data = boost::none;
 	beldex_transfer_utils::send_step2__try_create_transaction(
 		retVals,
 		//
+		mn_data,
 		json_root.get<string>("from_address_string"),
 		json_root.get<string>("sec_viewKey_string"),
 		json_root.get<string>("sec_spendKey_string"),

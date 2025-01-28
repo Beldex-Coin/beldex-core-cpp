@@ -325,6 +325,7 @@ LightwalletAPI_Res_GetRandomOuts beldex_send_routine::new__parsed_res__get_rando
 //
 struct _SendFunds_ConstructAndSendTx_Args
 {
+	boost::optional<master_node_data> mn_data;
 	const string &from_address_string;
 	const string &sec_viewKey_string;
 	const string &sec_spendKey_string;
@@ -435,6 +436,7 @@ void _reenterable_construct_and_send_tx(
 		beldex_transfer_utils::send_step2__try_create_transaction(
 			step2_retVals,
 			//
+			args.mn_data,
 			args.from_address_string,
 			args.sec_viewKey_string,
 			args.sec_spendKey_string,

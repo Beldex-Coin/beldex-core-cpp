@@ -44,6 +44,7 @@
 //
 #include "beldex_fork_rules.hpp"
 #include "beldex_fee_utils.hpp"
+#include "register_mn_data.hpp"
 //
 using namespace tools;
 #include "tools__ret_vals.hpp"
@@ -244,6 +245,7 @@ namespace beldex_transfer_utils
 	void send_step2__try_create_transaction(
 		Send_Step2_RetVals &retVals,
 		//
+		const boost::optional<master_node_data> &mn_data,
 		const string &from_address_string,
 		const string &sec_viewKey_string,
 		const string &sec_spendKey_string,
@@ -279,6 +281,7 @@ namespace beldex_transfer_utils
 	};
 	void convenience__create_transaction(
 		Convenience_TransactionConstruction_RetVals &retVals,
+		const boost::optional<master_node_data> &mn_data,
 		const string &from_address_string,
 		const string &sec_viewKey_string,
 		const string &sec_spendKey_string,
@@ -304,6 +307,8 @@ namespace beldex_transfer_utils
 	};
 	void create_transaction(
 		TransactionConstruction_RetVals &retVals,
+		const boost::optional<master_node_data> &mn_data,
+		const bool isRegister,
 		const account_keys& sender_account_keys, // this will reference a particular hw::device
 		const uint32_t subaddr_account_idx, // pass 0 for no subaddrs
 		const std::unordered_map<crypto::public_key, cryptonote::subaddress_index> &subaddresses,
