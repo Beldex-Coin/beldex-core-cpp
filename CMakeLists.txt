@@ -79,6 +79,7 @@ set(
     src/serial_bridge_utils.cpp
     src/tools__ret_vals.hpp
     src/tools__ret_vals.cpp
+    src/register_mn_data.hpp
     #
     ${BELDEX_SRC}/cryptonote_basic/cryptonote_basic_impl.cpp
     ${BELDEX_SRC}/cryptonote_basic/account.cpp

@@ -431,6 +431,7 @@ void beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_futur
 void beldex_transfer_utils::send_step2__try_create_transaction(
 	Send_Step2_RetVals &retVals,
 	//
+	const boost::optional<master_node_data> &mn_data,
 	const string &from_address_string,
 	const string &sec_viewKey_string,
 	const string &sec_spendKey_string,
@@ -454,6 +455,7 @@ void beldex_transfer_utils::send_step2__try_create_transaction(
 	Convenience_TransactionConstruction_RetVals create_tx__retVals;
 	beldex_transfer_utils::convenience__create_transaction(
 		create_tx__retVals,
+		mn_data,
 		from_address_string,
 		sec_viewKey_string, sec_spendKey_string,
 		to_address_strings, payment_id_string,
@@ -496,6 +498,8 @@ void beldex_transfer_utils::send_step2__try_create_transaction(
 //
 void beldex_transfer_utils::create_transaction(
 	TransactionConstruction_RetVals &retVals,
+	const boost::optional<master_node_data> &mn_data,
+	const bool isRegister,
 	const account_keys& sender_account_keys, // this will reference a particular hw::device
 	const uint32_t subaddr_account_idx,
 	const std::unordered_map<crypto::public_key, cryptonote::subaddress_index> &subaddresses,
@@ -732,8 +736,13 @@ void beldex_transfer_utils::create_transaction(
 	crypto::secret_key tx_key;
 	std::vector<crypto::secret_key> additional_tx_keys;
 	beldex_construct_tx_params tx_params;
-	tx_params.hf_version = 17;
-	tx_params.tx_type = txtype::standard;
+	tx_params.hf_version = 18;
+	if(isRegister){
+		// std::cout << "Place for register create construct params" << std::endl;
+		tx_params.tx_type = txtype::stake;
+	}
+	else
+		tx_params.tx_type = txtype::standard;
 
 	if(simple_priority == 5){
 		tx_params.burn_fixed   = FLASH_BURN_FIXED;
@@ -787,6 +796,7 @@ void beldex_transfer_utils::create_transaction(
 //
 void beldex_transfer_utils::convenience__create_transaction(
 	Convenience_TransactionConstruction_RetVals &retVals,
+	const boost::optional<master_node_data> &mn_data,
 	const string &from_address_string,
 	const string &sec_viewKey_string,
 	const string &sec_spendKey_string,
@@ -833,6 +843,30 @@ void beldex_transfer_utils::convenience__create_transaction(
 	}
 	//
 	std::vector<uint8_t> extra;
+	
+	bool isRegister =false;
+	master_node_data data = *mn_data;
+	if(data.contributor_args.addresses.size() ){
+		//extra process
+		cryptonote::account_public_address address = data.contributor_args.addresses[0];
+		// std::cout << " Data.master_node_key : "<< data.master_node_key << std::endl;
+		// std::cout << " Data.signature : "<< data.signature << std::endl;
+		// std::cout << " Data.Contributor size : " << data.contributor_args.addresses.size() << std::endl;
+		// std::cout << " Data.Contributor porsions size : " << data.contributor_args.portions.size() << std::endl;
+		// std::vector<uint8_t> extra_register;
+		cryptonote::add_master_node_contributor_to_tx_extra(extra, address);
+
+        cryptonote::add_master_node_pubkey_to_tx_extra(extra, data.master_node_key);
+
+        cryptonote::add_master_node_register_to_tx_extra(extra, data.contributor_args.addresses, data.contributor_args.portions_for_operator, data.contributor_args.portions, data.time_stamp, data.signature);
+		// std::cout << "extras: " << extra.size() << std::endl;
+		for(auto it : extra)
+		{
+			// std::cout << it <<" ";
+		}
+		isRegister= true;
+	}
+
 	CreateTransactionErrorCode tx_extra__code = _add_pid_to_tx_extra(payment_id_string, extra);
 	if (tx_extra__code != noError) {
 		retVals.errCode = tx_extra__code;
@@ -871,6 +905,7 @@ void beldex_transfer_utils::convenience__create_transaction(
 	TransactionConstruction_RetVals actualCall_retVals;
 	create_transaction(
 		actualCall_retVals,
+		mn_data,isRegister,
 		account_keys, subaddr_account_idx, subaddresses,
 		to_addr_infos,
 		sending_amounts, change_amount, fee_amount,

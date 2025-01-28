@@ -45,6 +45,7 @@ using namespace tools;
 #include "tools__ret_vals.hpp"
 //
 #include "beldex_transfer_utils.hpp"
+#include "register_mn_data.hpp"
 //
 namespace beldex_send_routine
 {
