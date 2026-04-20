@@ -1,4 +1,0 @@
-[submodule "contrib/beldex-core-custom"]
-	path = contrib/beldex-core-custom
-	url = https://github.com/Beldex-Coin/beldex-core-custom.git
-	branch = dev
