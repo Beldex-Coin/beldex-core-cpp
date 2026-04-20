@@ -518,7 +518,7 @@ void beldex_transfer_utils::create_transaction(
 	//
 	uint32_t fake_outputs_count = fixed_mixinsize();
 	rct::RangeProofType range_proof_type =rct::RangeProofType::PaddedBulletproof;
-	int bp_version = 3;
+	int bp_version = 4;
 	const rct::RCTConfig rct_config {
 		range_proof_type,
 		bp_version,
@@ -777,7 +777,7 @@ void beldex_transfer_utils::create_transaction(
 		retVals.errCode = transactionTooBig;
 		return;
 	}
-	bool use_bulletproofs = !tx.rct_signatures.p.bulletproofs.empty();
+	bool use_bulletproofs = !tx.rct_signatures.p.bulletproofs_plus.empty();
 	THROW_WALLET_EXCEPTION_IF(use_bulletproofs != true, error::wallet_internal_error, "Expected tx use_bulletproofs to equal bulletproof flag");
 	//
 	retVals.tx = tx;
