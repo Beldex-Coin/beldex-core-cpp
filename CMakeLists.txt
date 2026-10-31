@@ -35,6 +35,7 @@ include_directories("src")
 include_directories(${BELDEX_SRC})
 include_directories("${BELDEX_SRC}/external")
 include_directories("${BELDEX_SRC}/external/loki-mq")
+include_directories("${BELDEX_SRC}/external/oxen-encoding")
 include_directories("${BELDEX_SRC}/external/easylogging++")
 include_directories("${BELDEX_SRC}/epee/include")
 include_directories("${BELDEX_SRC}/common")
@@ -79,6 +80,7 @@ set(
     src/serial_bridge_utils.cpp
     src/tools__ret_vals.hpp
     src/tools__ret_vals.cpp
+    src/register_mn_data.hpp
     #
     ${BELDEX_SRC}/cryptonote_basic/cryptonote_basic_impl.cpp
     ${BELDEX_SRC}/cryptonote_basic/account.cpp
@@ -126,6 +128,7 @@ set(
     ${BELDEX_SRC}/ringct/rctCryptoOps.c
     ${BELDEX_SRC}/ringct/rctSigs.cpp
     ${BELDEX_SRC}/ringct/bulletproofs.cc
+    ${BELDEX_SRC}/ringct/bulletproofs_plus.cc
     ${BELDEX_SRC}/ringct/multiexp.cc
     ${BELDEX_SRC}/mnemonics/electrum-words.cpp
     ${BELDEX_SRC}/vtlogger/logger.cpp

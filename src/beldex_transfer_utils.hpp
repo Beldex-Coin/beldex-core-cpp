@@ -44,6 +44,8 @@
 //
 #include "beldex_fork_rules.hpp"
 #include "beldex_fee_utils.hpp"
+#include "register_mn_data.hpp"
+#include "token_operation_data.hpp"
 //
 using namespace tools;
 #include "tools__ret_vals.hpp"
@@ -65,12 +67,39 @@ namespace beldex_transfer_utils
 		uint64_t global_index;
 		uint64_t index;
 		string tx_pub_key;
+		// ── Privacy token (HF21+) ──────────────────────────────────────────
+		// Present together, and only for a tx_out_zyphora. `public_key` then
+		// carries the output's stealth_address rather than a txout_to_key key.
+		// The plaintext token id, amount, Pedersen mask and token-blinding
+		// scalar are all recovered locally by decode_zyphora_output() -- the
+		// blinding scalar in particular has no other source, and is required
+		// to rebuild T_real when spending.
+		// Plaintext token id, supplied by the LWS (which holds the view key and
+		// already decodes `amount` the same way). Used only to SELECT inputs in
+		// step1, which has no keys. create_transaction re-derives it locally
+		// from the output itself and rejects a mismatch, so a lying server
+		// cannot get a wrong token spent -- it can only cause a failed build.
+		boost::optional<string> token_id;           // (64 hex)
+		boost::optional<string> blinded_token_id;   // T   (64 hex)
+		boost::optional<string> amount_commitment;  // C   (64 hex)
+		boost::optional<uint64_t> encrypted_amount; // amount XOR H("enc_amount"..)
+		bool is_zyphora() const {
+			return blinded_token_id != boost::none
+				&& amount_commitment != boost::none
+				&& encrypted_amount != boost::none;
+		}
 	};
 	struct RandomAmountOutput
 	{
 		uint64_t global_index; // this is, I believe, presently supplied as a string by the API, probably to avoid overflow
 		string public_key;
 		boost::optional<string> rct;
+		// HF21: the decoy's blinded token id, when it is a tx_out_zyphora.
+		// Needed to fill tx_source_entry::ring_blinded_token_ids, which is the
+		// third (X) layer of the CLSAG-GGX ring. A decoy that is a native BDX
+		// output has none; see _zc_ring_token_id_for_decoy() for what is used
+		// in its place.
+		boost::optional<string> blinded_token_id;
 	};
 	struct RandomAmountOutputs
 	{
@@ -107,6 +136,10 @@ namespace beldex_transfer_utils
 		cantGetDecryptedMaskFromRCTHex	= 21,
 		notEnoughUsableDecoysFound		= 22,
 		tooManyDecoysRemaining			= 23,
+		// HF21 privacy tokens. Appended at the end so no existing code's numeric
+		// value moves -- these are serialized to JavaScript as bare integers.
+		couldntAddTokenOperationToTXExtra = 24,
+		invalidTokenOperation			= 25,
 		needMoreMoneyThanFound			= 90
 	};
 	static inline const char *err_msg_from_err_code__create_transaction(CreateTransactionErrorCode code)
@@ -162,6 +195,10 @@ namespace beldex_transfer_utils
 				return "Too many unused decoys remaining";
 			case cantGetDecryptedMaskFromRCTHex:
 				return "Can't get decrypted mask from 'rct' hex";
+			case couldntAddTokenOperationToTXExtra:
+				return "Couldn't add the token operation to tx extra";
+			case invalidTokenOperation:
+				return "Invalid token operation";
 		}
         return "Unknown error";
 	}
@@ -192,6 +229,16 @@ namespace beldex_transfer_utils
 		uint64_t using_fee;
 		uint64_t final_total_wo_fee;
 		uint64_t change_amount;
+		// ── Privacy token send (HF21+) ────────────────────────────────────
+		// Only meaningful when requested_token_id was given. The native
+		// fields above then account for the BDX side (fee + BDX change) and
+		// these for the token side. A token tx spends BOTH: token inputs to
+		// cover the transferred amount, and native inputs to pay the fee,
+		// which is always denominated in BDX.
+		uint64_t token_final_total_wo_fee; // token amount actually being sent
+		uint64_t token_change_amount;      // token change back to self
+		uint64_t token_spendable_balance;  // for needMoreMoneyThanFound display
+		uint64_t token_required_balance;
 	};
 	void send_step1__prepare_params_for_get_decoys(
 		Send_Step1_RetVals &retVals,
@@ -208,7 +255,21 @@ namespace beldex_transfer_utils
 		uint64_t fee_quantization_mask,
 		//
 		boost::optional<uint64_t> prior_attempt_size_calcd_fee, // use this for passing step2 "must-reconstruct" return values back in, i.e. re-entry; when nil, defaults to attempt at network min
-		boost::optional<SpendableOutputToRandomAmountOutputs> prior_attempt_unspent_outs_to_mix_outs = none // use this to make sure upon re-attempting, the calculated fee will be the result of calculate_fee()
+		boost::optional<SpendableOutputToRandomAmountOutputs> prior_attempt_unspent_outs_to_mix_outs = none, // use this to make sure upon re-attempting, the calculated fee will be the result of calculate_fee()
+		//! HF21+: when set, `sending_amounts` are amounts of THIS token and
+		//! inputs are selected from both the token pool (to cover the send)
+		//! and the native pool (to cover the fee). When unset, behaviour is
+		//! exactly as before.
+		boost::optional<string> requested_token_id = none,
+		uint8_t hf_version = 0, // 0 = unknown; treated as pre-HF21
+		//! HF21+: when set, this is a token descriptor operation (deploy a new
+		//! asset) rather than a transfer. It has no token inputs -- the token
+		//! does not exist yet -- so selection here is native-only, but the tx is
+		//! much larger (MIN_TOKEN_MINT_OUTPUTS zyphora outputs + the descriptor
+		//! in tx.extra) and carries a protocol burn on top of the network fee.
+		const boost::optional<token_operation_data> &token_op = none,
+		//! Chain tip, for the registration collateral's absolute unlock height.
+		uint64_t blockchain_height = 0
 	);
 	struct Tie_Outs_to_Mix_Outs_RetVals
 	{
@@ -244,6 +305,7 @@ namespace beldex_transfer_utils
 	void send_step2__try_create_transaction(
 		Send_Step2_RetVals &retVals,
 		//
+		const boost::optional<master_node_data> &mn_data,
 		const string &from_address_string,
 		const string &sec_viewKey_string,
 		const string &sec_spendKey_string,
@@ -260,7 +322,16 @@ namespace beldex_transfer_utils
 		vector<RandomAmountOutputs> &mix_outs, // it gets sorted
 		use_fork_rules_fn_type use_fork_rules_fn,
 		uint64_t unlock_time, // or 0
-		cryptonote::network_type nettype
+		cryptonote::network_type nettype,
+		//! HF21+: one entry per destination, parallel to `to_address_strings`.
+		//! Empty (or an unset entry) means that destination is native BDX.
+		const vector<boost::optional<string>> &destination_token_ids = {},
+		uint64_t token_change_amount = 0,
+		uint8_t hf_version = 0,
+		//! HF21+: see send_step1__prepare_params_for_get_decoys.
+		const boost::optional<token_operation_data> &token_op = none,
+		//! Chain tip, for the registration collateral's absolute unlock height.
+		uint64_t blockchain_height = 0
 	);
 	//
 	//
@@ -279,6 +350,7 @@ namespace beldex_transfer_utils
 	};
 	void convenience__create_transaction(
 		Convenience_TransactionConstruction_RetVals &retVals,
+		const boost::optional<master_node_data> &mn_data,
 		const string &from_address_string,
 		const string &sec_viewKey_string,
 		const string &sec_spendKey_string,
@@ -292,7 +364,15 @@ namespace beldex_transfer_utils
 		vector<RandomAmountOutputs> &mix_outs, // get sorted
 		use_fork_rules_fn_type use_fork_rules_fn,
 		uint64_t unlock_time							= 0, // or 0
-		network_type nettype 							= MAINNET
+		network_type nettype 							= MAINNET,
+		const vector<boost::optional<string>> &destination_token_ids = {},
+		uint64_t token_change_amount					= 0,
+		uint8_t hf_version								= 0,
+		//! HF21+: see send_step1__prepare_params_for_get_decoys. This is where
+		//! the descriptor operation is written into `extra`.
+		const boost::optional<token_operation_data> &token_op = none,
+		//! Chain tip, for the registration collateral's absolute unlock height.
+		uint64_t blockchain_height = 0
 	);
 	struct TransactionConstruction_RetVals
 	{
@@ -304,6 +384,8 @@ namespace beldex_transfer_utils
 	};
 	void create_transaction(
 		TransactionConstruction_RetVals &retVals,
+		const boost::optional<master_node_data> &mn_data,
+		const bool isRegister,
 		const account_keys& sender_account_keys, // this will reference a particular hw::device
 		const uint32_t subaddr_account_idx, // pass 0 for no subaddrs
 		const std::unordered_map<crypto::public_key, cryptonote::subaddress_index> &subaddresses,
@@ -318,7 +400,21 @@ namespace beldex_transfer_utils
 		use_fork_rules_fn_type use_fork_rules_fn,
 		uint64_t unlock_time							= 0, // or 0
 		bool rct 										= true,
-		network_type nettype							= MAINNET
+		network_type nettype							= MAINNET,
+		//! HF21+: parallel to `to_addr`; an unset entry is a native BDX output.
+		const vector<boost::optional<string>> &destination_token_ids = {},
+		//! HF21+: token change back to the sender, in the token being sent.
+		uint64_t token_change_amount					= 0,
+		//! Real network fork version. Previously hard-coded to 18 inside
+		//! create_transaction, which silently disabled every gate above it.
+		//! 0 keeps the historical behaviour.
+		uint8_t hf_version								= 0,
+		//! HF21+: selects the txtype and the burn, and pads the destinations up
+		//! to MIN_TOKEN_MINT_OUTPUTS. `extra` must already contain the matching
+		//! descriptor operation -- convenience__create_transaction puts it there.
+		const boost::optional<token_operation_data> &token_op = none,
+		//! Chain tip, for the registration collateral's absolute unlock height.
+		uint64_t blockchain_height = 0
 	);
 }
 

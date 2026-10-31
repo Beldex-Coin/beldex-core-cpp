@@ -73,7 +73,8 @@ boost::optional<uint64_t> _possible_uint64_from_json(
 //
 LightwalletAPI_Req_GetUnspentOuts beldex_send_routine::new__req_params__get_unspent_outs(
 	string from_address_string,
-	string sec_viewKey_string
+	string sec_viewKey_string,
+	const boost::optional<string> &token_id
 ) {
 	ostringstream dustT_ss;
 	dustT_ss << dust_threshold();
@@ -83,7 +84,8 @@ LightwalletAPI_Req_GetUnspentOuts beldex_send_routine::new__req_params__get_unsp
 		"0", // amount - always sent as "0"
 		fixed_mixinsize(),
 		true, // use dust
-		dustT_ss.str()
+		dustT_ss.str(),
+		token_id != none ? *token_id : string()
 	};
 }
 
@@ -104,6 +106,17 @@ LightwalletAPI_Req_GetRandomOuts beldex_send_routine::new__req_params__get_rando
 		decoy_requests = step1__using_outs;
 	}
 
+	/* HF22: each ring is drawn from the bucket its input belongs to. A token
+	   transfer spends token outputs for the amount and native outputs for the
+	   fee, so this array is mixed and must stay parallel to `amounts`. */
+	vector<string> decoy_req__token_ids;
+	for (SpendableOutput &using_out : decoy_requests)
+	{
+		decoy_req__token_ids.push_back(
+			using_out.token_id != none ? *(using_out.token_id) : string()
+		);
+	}
+
 	vector<string> decoy_req__amounts;
 	for(SpendableOutput &using_out : decoy_requests)
 	{
@@ -117,7 +130,8 @@ LightwalletAPI_Req_GetRandomOuts beldex_send_routine::new__req_params__get_rando
 	}
 	return LightwalletAPI_Req_GetRandomOuts{
 		decoy_req__amounts,
-		fixed_mixinsize() + 1 // count; Add one to mixin so we can skip real output key if necessary
+		fixed_mixinsize() + 1, // count; Add one to mixin so we can skip real output key if necessary
+		decoy_req__token_ids
 	};
 }
 //
@@ -268,15 +282,35 @@ LightwalletAPI_Res_GetUnspentOuts beldex_send_routine::new__parsed_res__get_unsp
 			out.global_index = stoull(output_desc.second.get<string>("global_index"));
 			out.index = output__index;
 			out.tx_pub_key = *optl__tx_pub_key; // just b/c we've already accessed it above
+			// HF21 privacy token fields. All optional: an output without them is
+			// an ordinary BDX output, so a server that predates tokens is
+			// unaffected. token_id is the LWS's decode (it holds the view key and
+			// already decodes `amount` the same way) and is used only to select
+			// inputs; create_transaction re-derives it locally and rejects a
+			// mismatch.
+			out.token_id = output_desc.second.get_optional<string>("token_id");
+			out.blinded_token_id = output_desc.second.get_optional<string>("blinded_token_id");
+			out.amount_commitment = output_desc.second.get_optional<string>("amount_commitment");
+			{
+				boost::optional<string> enc = output_desc.second.get_optional<string>("encrypted_amount");
+				if (enc != none && !enc->empty()) {
+					out.encrypted_amount = stoull(*enc);
+				}
+			}
+			if (out.token_id != none && out.token_id->empty()) out.token_id = none;
+			if (out.blinded_token_id != none && out.blinded_token_id->empty()) out.blinded_token_id = none;
+			if (out.amount_commitment != none && out.amount_commitment->empty()) out.amount_commitment = none;
 			//
 			unspent_outs.push_back(std::move(out));
 		}
 	}
 	auto fork_version = res.get_optional<uint8_t>("fork_version");
+	auto blockchain_height = res.get_optional<uint64_t>("blockchain_height");
 	return LightwalletAPI_Res_GetUnspentOuts{
 		none,
 		final__per_byte_fee,final_fee_per_output, fee_mask, unspent_outs,
-		fork_version ? *fork_version : static_cast<uint8_t>(0)
+		fork_version ? *fork_version : static_cast<uint8_t>(0),
+		blockchain_height ? *blockchain_height : static_cast<uint64_t>(0)
 	};
 }
 LightwalletAPI_Res_GetRandomOuts beldex_send_routine::new__parsed_res__get_random_outs(
@@ -313,6 +347,9 @@ LightwalletAPI_Res_GetRandomOuts beldex_send_routine::new__parsed_res__get_rando
 			}
 			amountOutput.public_key = mix_out_output_desc.second.get<string>("public_key");
 			amountOutput.rct = mix_out_output_desc.second.get_optional<string>("rct");
+			// HF21: present when the decoy is itself a tx_out_zyphora; needed
+			// for the X layer of the CLSAG-GGX ring.
+			amountOutput.blinded_token_id = mix_out_output_desc.second.get_optional<string>("blinded_token_id");
 			//
 			amountAndOuts.outputs.push_back(std::move(amountOutput));
 		}
@@ -325,6 +362,7 @@ LightwalletAPI_Res_GetRandomOuts beldex_send_routine::new__parsed_res__get_rando
 //
 struct _SendFunds_ConstructAndSendTx_Args
 {
+	boost::optional<master_node_data> mn_data;
 	const string &from_address_string;
 	const string &sec_viewKey_string;
 	const string &sec_spendKey_string;
@@ -435,6 +473,7 @@ void _reenterable_construct_and_send_tx(
 		beldex_transfer_utils::send_step2__try_create_transaction(
 			step2_retVals,
 			//
+			args.mn_data,
 			args.from_address_string,
 			args.sec_viewKey_string,
 			args.sec_spendKey_string,

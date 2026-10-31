@@ -82,6 +82,26 @@ CreateTransactionErrorCode _add_pid_to_tx_extra(
 	}
 	return noError;
 }
+// HF21: locate a decoy in the per-input decoy set by its global index.
+// src.outputs is the ring after the real output has been inserted in sorted
+// position, so ring index != decoy index; matching on global_index is the only
+// stable correspondence. Returns nullptr when the ring member is not among the
+// supplied decoys (which happens for the real output).
+static const beldex_transfer_utils::RandomAmountOutput *_find_decoy_by_global_index(
+	const std::vector<beldex_transfer_utils::RandomAmountOutputs> &mix_outs,
+	size_t input_index,
+	uint64_t global_index
+) {
+	if (input_index >= mix_outs.size()) {
+		return nullptr;
+	}
+	for (const auto &candidate : mix_outs[input_index].outputs) {
+		if (candidate.global_index == global_index) {
+			return &candidate;
+		}
+	}
+	return nullptr;
+}
 bool _rct_hex_to_rct_commit(
 	const std::string &rct_string,
 	rct::key &rct_commit
@@ -197,11 +217,35 @@ void beldex_transfer_utils::send_step1__prepare_params_for_get_decoys(
 	uint64_t fee_quantization_mask,
 	//
 	boost::optional<uint64_t> prior_attempt_size_calcd_fee,
-	boost::optional<SpendableOutputToRandomAmountOutputs> prior_attempt_unspent_outs_to_mix_outs
+	boost::optional<SpendableOutputToRandomAmountOutputs> prior_attempt_unspent_outs_to_mix_outs,
+	boost::optional<string> requested_token_id,
+	uint8_t hf_version,
+	const boost::optional<token_operation_data> &token_op,
+	//! Chain tip, for the registration collateral's absolute unlock height.
+	uint64_t blockchain_height
 ) {
 	retVals = {};
+	const bool tokens_active = hf_version >= HF_VERSION_PRIVATE_TOKENS;
+	const bool sending_token = requested_token_id != none && !requested_token_id->empty();
+	// A token operation (deploy a new asset) also sets requested_token_id -- to
+	// the id of the token it is creating -- so that the destinations get tagged
+	// as privacy-token outputs. It is not a transfer of that token though: the
+	// token has no outputs to select from yet, so it takes its own path below
+	// and the transfer path must not claim it.
+	const bool deploying_token = token_op != none;
+	if ((sending_token || deploying_token) && !tokens_active) {
+		retVals.errCode = notYetImplemented;
+		return;
+	}
+	// A token operation's fee depends on the network -- testnet and mainnet
+	// charge different amounts -- so without a known network there is no fee
+	// consensus would accept. Refuse rather than guess one.
+	if (deploying_token && !token_op->fee(hf_version).enabled) {
+		retVals.errCode = invalidTokenOperation;
+		return;
+	}
 	//
-	if (!is_sweeping) {
+	if (!is_sweeping && !deploying_token) {
 		for (uint64_t sending_amount : sending_amounts) {
  			if (sending_amount == 0) {
  				retVals.errCode = enteredAmountTooLow;
@@ -247,6 +291,203 @@ void beldex_transfer_utils::send_step1__prepare_params_for_get_decoys(
  			sum_sending_amounts += amount;
  		}
  		potential_total = sum_sending_amounts + attempt_at_min_fee;
+	}
+	//
+	// ── HF21: privacy token send ──────────────────────────────────────────
+	// A token transfer spends two disjoint pools at once: token outputs of the
+	// requested token to cover the transferred amount, and native BDX outputs
+	// to cover the fee (fees are always BDX). They are selected and balanced
+	// independently, then concatenated into a single using_outs -- the decoy
+	// fetch and construction paths treat them uniformly from there.
+	//
+	// ── HF21: token descriptor operation (deploy a new asset) ─────────────
+	// A deploy has no token inputs -- the token does not exist until this very
+	// transaction creates it. What it does have is a fixed fan-out of
+	// MIN_TOKEN_MINT_OUTPUTS zyphora outputs carrying the initial supply, the
+	// descriptor operation in tx.extra, and a protocol-mandated BDX burn on top
+	// of the ordinary network fee. All of that is paid for out of native
+	// outputs, so selection is native-only -- just against a much bigger bill.
+	if (deploying_token) {
+		if (is_sweeping) {
+			// Sweeping is "send everything you have"; a deploy sends nothing.
+			retVals.errCode = notYetImplemented;
+			return;
+		}
+		// The descriptor operation is a real part of tx.extra and can run to
+		// several hundred bytes (meta_info is free-form user text), so it has to
+		// be inside the size the fee is estimated from or the tx is underpaid.
+		// Two details matter for that size to be the true one:
+		//  - construct_tx re-encodes the operation with the token amount
+		//    commitment attached before signing, so size against a copy that
+		//    already carries the flag (32 bytes the fee would otherwise miss);
+		//  - the burn field is written at its real value, because construct_tx
+		//    replaces the wallet's dummy with exactly this number.
+		const uint64_t burn_amount = token_op->burn_amount(hf_version);
+		cryptonote::tx_extra_token_descriptor_operation sizing_tdo = token_op->tdo;
+		sizing_tdo.fields = (uint8_t)(sizing_tdo.fields | cryptonote::token_field_amount_commitment);
+		if (!cryptonote::add_token_descriptor_operation_to_tx_extra(extra, sizing_tdo)
+			|| !cryptonote::add_burned_amount_to_tx_extra(extra, burn_amount)) {
+			retVals.errCode = couldntAddTokenOperationToTXExtra;
+			return;
+		}
+		const int n_zc_outs  = (int)MIN_TOKEN_MINT_OUTPUTS;
+		const int n_est_outs = n_zc_outs + 1; // + the BDX change output
+		auto estimate_with = [&](size_t n_native_inputs) {
+			uint64_t f = estimate_fee(
+				true/*use_per_byte_fee*/, use_rct,
+				(int)std::max<size_t>(n_native_inputs, 1), fake_outs_count, n_est_outs, extra.size(),
+				bulletproof, clsag, fee_per_b, fee_per_o, fee_multiplier, fee_quantization_mask,
+				n_zc_outs, 0/*n_zc_inputs -- a deploy spends no token inputs*/
+			);
+			if (prior_attempt_size_calcd_fee != none && f < attempt_at_min_fee) {
+				f = attempt_at_min_fee;
+			}
+			return f;
+		};
+		vector<SpendableOutput> native_pool;
+		for (const auto &out : unspent_outs) {
+			if (out.is_zyphora()) {
+				continue; // a token cannot pay a BDX fee or a BDX burn
+			}
+			if (out.amount < beldex_fork_rules::dust_threshold()
+				&& (out.rct == none || out.rct->empty())) {
+				continue; // dusty and unmixable
+			}
+			native_pool.push_back(out);
+		}
+		// The burn rides along inside using_fee. construct_tx enforces
+		// amount_in - amount_out >= burn_fixed and then credits the miner with
+		// only the remainder, so the two have to be covered together or the tx
+		// fails to construct at the very last step.
+		uint64_t native_using = 0;
+		size_t n_native_used = 0;
+		// HF22: a registration locks the network's collateral in a native
+		// output back to the sender. It is not spent away like the burn, but it
+		// still has to be covered by the inputs we select here, or construction
+		// fails at the last step for want of funds.
+		const uint64_t collateral_amount = token_op->collateral_amount();
+		// The governance part of the registration fee rides in the miner fee,
+		// alongside the network fee and on top of the burn.
+		const uint64_t governance_fee = token_op->governance_fee(hf_version);
+		uint64_t needed_total = estimate_with(1) + burn_amount + governance_fee + collateral_amount;
+		while (native_using < needed_total && native_pool.size() > 0) {
+			auto out = pop_random_value(native_pool);
+			native_using += out.amount;
+			retVals.using_outs.push_back(std::move(out));
+			++n_native_used;
+			needed_total = estimate_with(n_native_used) + burn_amount + governance_fee + collateral_amount; // each input grows the tx
+		}
+		retVals.spendable_balance = native_using;
+		retVals.required_balance = needed_total;
+		if (native_using < needed_total) {
+			retVals.errCode = needMoreMoneyThanFound;
+			return;
+		}
+		// The collateral is selected for above but it is NOT a fee: it comes back
+		// to this wallet as a locked output. Report it as the amount being sent
+		// so the caller's balance reconciliation (fee + change + sent == found)
+		// adds up, and so the UI shows a 0.33 BDX fee rather than a 10,000 one.
+		retVals.using_fee = needed_total - collateral_amount; // network fee + burn + governance fee
+		retVals.final_total_wo_fee = collateral_amount;       // locked collateral, returned to sender
+		retVals.change_amount = native_using - needed_total;
+		uint64_t initial_supply = 0;
+		for (uint64_t amount : sending_amounts) {
+			initial_supply += amount;
+		}
+		retVals.token_final_total_wo_fee = initial_supply;
+		retVals.token_change_amount = 0;  // a deploy mints; there is no change
+		return;
+	}
+	if (sending_token) {
+		if (is_sweeping) {
+			// A token sweep would have to drain the token pool while still
+			// leaving BDX for the fee; not modelled here yet.
+			retVals.errCode = notYetImplemented;
+			return;
+		}
+		vector<SpendableOutput> token_pool, native_pool;
+		for (const auto &out : unspent_outs) {
+			if (out.is_zyphora()) {
+				if (out.token_id != none && *out.token_id == *requested_token_id
+				    && out.amount != 0) {
+					// Zero-amount token outputs are skipped. A registration fans
+					// its initial supply out over MIN_TOKEN_MINT_OUTPUTS outputs,
+					// and all but one of them carry nothing -- they exist to pad
+					// the anonymity set, not to be spent. Selecting them adds
+					// nothing to the amount while adding an input that has to be
+					// signed and verified, and the network rejects the result
+					// ("ZY_sig verification failed"). Dropping them also keeps
+					// the transaction smaller and the fee lower.
+					token_pool.push_back(out);
+				}
+				continue; // a token of some OTHER token is not spendable here
+			}
+			native_pool.push_back(out);
+		}
+		// Token side.
+		uint64_t token_needed = 0;
+		for (uint64_t amount : sending_amounts) {
+			token_needed += amount;
+		}
+		uint64_t token_using = 0;
+		while (token_using < token_needed && token_pool.size() > 0) {
+			auto out = pop_random_value(token_pool);
+			token_using += out.amount;
+			retVals.using_outs.push_back(std::move(out));
+		}
+		retVals.token_spendable_balance = token_using;
+		retVals.token_required_balance = token_needed;
+		if (token_using < token_needed) {
+			retVals.errCode = needMoreMoneyThanFound;
+			return;
+		}
+		retVals.token_final_total_wo_fee = token_needed;
+		retVals.token_change_amount = token_using - token_needed;
+		//
+		// Native side: enough BDX to cover the fee alone. Output count for the
+		// estimate is the recipient token output, the token change output, and
+		// the BDX change output.
+		const int n_zc_inputs = (int)retVals.using_outs.size(); // every out chosen so far is a token out
+		const int n_zc_outs = 1 + (retVals.token_change_amount != 0 ? 1 : 0);
+		const int n_est_outs = n_zc_outs + 1; // + the BDX change output
+		// Estimate against at least one native input, since one will be needed.
+		auto estimate_with = [&](size_t n_native_inputs) {
+			uint64_t f = estimate_fee(
+				true/*use_per_byte_fee*/, use_rct,
+				(int)(n_zc_inputs + n_native_inputs), fake_outs_count, n_est_outs, extra.size(),
+				bulletproof, clsag, fee_per_b, fee_per_o, fee_multiplier, fee_quantization_mask,
+				n_zc_outs, n_zc_inputs
+			);
+			if (prior_attempt_size_calcd_fee != none && f < attempt_at_min_fee) {
+				f = attempt_at_min_fee;
+			}
+			return f;
+		};
+		uint64_t native_using = 0;
+		size_t n_native_used = 0;
+		uint64_t needed_fee_tok = estimate_with(1);
+		while (native_using < needed_fee_tok && native_pool.size() > 0) {
+			auto out = pop_random_value(native_pool);
+			if (out.amount < beldex_fork_rules::dust_threshold()
+				&& (out.rct == none || out.rct->empty())) {
+				continue; // dusty and unmixable
+			}
+			native_using += out.amount;
+			retVals.using_outs.push_back(std::move(out));
+			++n_native_used;
+			// Each added input grows the tx, so the fee must be re-estimated.
+			needed_fee_tok = estimate_with(n_native_used);
+		}
+		retVals.spendable_balance = native_using;
+		retVals.required_balance = needed_fee_tok;
+		if (native_using < needed_fee_tok) {
+			retVals.errCode = needMoreMoneyThanFound; // not enough BDX to pay the fee
+			return;
+		}
+		retVals.using_fee = needed_fee_tok;
+		retVals.final_total_wo_fee = 0;   // nothing native is being sent
+		retVals.change_amount = native_using - needed_fee_tok;
+		return;
 	}
 	//
 	// Gather outputs and amount to use for getting decoy outputs…
@@ -394,7 +635,15 @@ void beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_futur
 					continue;
 				}
 
-				RandomAmountOutputs output_mix_outs = pop_index(mix_outs_from_server, j);
+				// Taken out in place, not with pop_index: pop_index refills slot j
+				// with the last ring, so the next input gets whichever ring the
+				// server listed last. Since HF22 the rings are not interchangeable
+				// -- the server draws each from its input's bucket (token or
+				// native), in request order -- and with two token inputs and a
+				// native fee input that reshuffle handed the second token input
+				// the native ring, which the node rejects.
+				RandomAmountOutputs output_mix_outs = std::move(mix_outs_from_server[j]);
+				mix_outs_from_server.erase(mix_outs_from_server.begin() + j);
 
 				// if we need to retry constructing tx, will remember to use same mix outs for this out on subsequent attempt(s)
 				prior_attempt_unspent_outs_to_mix_outs_new[out.public_key] = output_mix_outs.outputs;
@@ -431,6 +680,7 @@ void beldex_transfer_utils::pre_step2_tie_unspent_outs_to_mix_outs_for_all_futur
 void beldex_transfer_utils::send_step2__try_create_transaction(
 	Send_Step2_RetVals &retVals,
 	//
+	const boost::optional<master_node_data> &mn_data,
 	const string &from_address_string,
 	const string &sec_viewKey_string,
 	const string &sec_spendKey_string,
@@ -447,13 +697,20 @@ void beldex_transfer_utils::send_step2__try_create_transaction(
 	vector<RandomAmountOutputs> &mix_outs, // cannot be const due to convenience__create_transaction's mutability requirement
 	use_fork_rules_fn_type use_fork_rules_fn,
 	uint64_t unlock_time, // or 0
-	cryptonote::network_type nettype
+	cryptonote::network_type nettype,
+	const vector<boost::optional<string>> &destination_token_ids,
+	uint64_t token_change_amount,
+	uint8_t hf_version,
+	const boost::optional<token_operation_data> &token_op,
+	//! Chain tip, for the registration collateral's absolute unlock height.
+	uint64_t blockchain_height
 ) {
 	retVals = {};
 	//
 	Convenience_TransactionConstruction_RetVals create_tx__retVals;
 	beldex_transfer_utils::convenience__create_transaction(
 		create_tx__retVals,
+		mn_data,
 		from_address_string,
 		sec_viewKey_string, sec_spendKey_string,
 		to_address_strings, payment_id_string,
@@ -462,7 +719,8 @@ void beldex_transfer_utils::send_step2__try_create_transaction(
 		using_outs, mix_outs,
 		use_fork_rules_fn,
 		unlock_time,
-		nettype // TODO: move to after from_address_string
+		nettype, // TODO: move to after from_address_string
+		destination_token_ids, token_change_amount, hf_version, token_op, blockchain_height
 	);
 	if (create_tx__retVals.errCode != noError) {
 		retVals.errCode = create_tx__retVals.errCode;
@@ -496,6 +754,8 @@ void beldex_transfer_utils::send_step2__try_create_transaction(
 //
 void beldex_transfer_utils::create_transaction(
 	TransactionConstruction_RetVals &retVals,
+	const boost::optional<master_node_data> &mn_data,
+	const bool isRegister,
 	const account_keys& sender_account_keys, // this will reference a particular hw::device
 	const uint32_t subaddr_account_idx,
 	const std::unordered_map<crypto::public_key, cryptonote::subaddress_index> &subaddresses,
@@ -510,15 +770,44 @@ void beldex_transfer_utils::create_transaction(
 	use_fork_rules_fn_type use_fork_rules_fn,
 	uint64_t unlock_time, // or 0
 	bool rct,
-	cryptonote::network_type nettype
+	cryptonote::network_type nettype,
+	const vector<boost::optional<string>> &destination_token_ids,
+	uint64_t token_change_amount,
+	uint8_t hf_version,
+	const boost::optional<token_operation_data> &token_op,
+	//! Chain tip, for the registration collateral's absolute unlock height.
+	uint64_t blockchain_height
 ) {
 	retVals.errCode = noError;
+	// Historically this function hard-coded hf_version = 18, which meant every
+	// gate at or above 18 in construct_tx was permanently off -- including the
+	// HF21 privacy-token branch. 0 reproduces that behaviour for callers that
+	// have not been updated to pass the real fork version through.
+	const uint8_t effective_hf_version = hf_version != 0 ? hf_version : 18;
+	const bool tokens_active = effective_hf_version >= HF_VERSION_PRIVATE_TOKENS;
+	// HF21: a token descriptor operation (deploy a new asset). Re-derive the
+	// token id from the descriptor that is actually going on chain rather than
+	// trusting the one handed down: construct_tx will recompute it the same way
+	// from tx.extra, and if the two disagree every output would be tagged with a
+	// token id the chain does not recognise -- an unspendable transaction.
+	if (token_op != none) {
+		if (!tokens_active) {
+			retVals.errCode = notYetImplemented;
+			return;
+		}
+		const crypto::token_id derived = cryptonote::get_or_calculate_token_id(token_op->tdo);
+		if (derived == crypto::null_tid || derived != token_op->token_id
+			|| token_op->tx_type() == txtype::standard) {
+			retVals.errCode = invalidTokenOperation;
+			return;
+		}
+	}
 	//
 	// TODO: do we need to sort destinations by amount, here, according to 'decompose_destinations'?
 	//
 	uint32_t fake_outputs_count = fixed_mixinsize();
 	rct::RangeProofType range_proof_type =rct::RangeProofType::PaddedBulletproof;
-	int bp_version = 3;
+	int bp_version = 4;
 	const rct::RCTConfig rct_config {
 		range_proof_type,
 		bp_version,
@@ -545,16 +834,33 @@ void beldex_transfer_utils::create_transaction(
 //		retVals.errCode = outputAmountOverflow;
 //		return;
 //	}
+ 	// Only NATIVE destinations consume BDX. A token destination's amount is
+ 	// denominated in that token, so folding it in here would make the
+ 	// found/needed reconciliation below reject every valid token transfer.
  	uint64_t needed_money = fee_amount + change_amount;
- 	for (uint64_t amount : sending_amounts) {
- 		needed_money += amount;
+ 	for (size_t i = 0; i < sending_amounts.size(); ++i) {
+ 		const bool dst_is_token = i < destination_token_ids.size()
+ 			&& destination_token_ids[i] != none && !destination_token_ids[i]->empty();
+ 		if (!dst_is_token) {
+ 			needed_money += sending_amounts[i];
+ 		}
+ 	}
+ 	// HF22: the registration collateral is a native output this function emits
+ 	// further down, so the inputs must cover it exactly like any other BDX
+ 	// destination -- it is locked, not burned, but it still leaves the balance.
+ 	if (token_op != none) {
+ 		needed_money += token_op->collateral_amount();
  	}
 	//
 	uint64_t found_money = 0;
 	std::vector<tx_source_entry> sources;
 	// TODO: log: "Selected transfers: " << outputs
 	for (size_t out_index = 0; out_index < outputs.size(); out_index++) {
-		found_money += outputs[out_index].amount;
+		// Token inputs are denominated in their own token and pay no part of
+		// the BDX fee, so they stay out of the native balance reconciliation.
+		if (!outputs[out_index].is_zyphora()) {
+			found_money += outputs[out_index].amount;
+		}
 		if (found_money > UINT64_MAX) {
 			retVals.errCode = inputAmountOverflow;
 		}
@@ -678,6 +984,88 @@ void beldex_transfer_utils::create_transaction(
 		} else {
 			rct::identity(src.mask); // in the original cn_utils impl this was left as null for generate_key_image_helper_rct to fill in with identity I
 		}
+		//
+		// ── HF21: privacy token (zyphora) input ───────────────────────────
+		if (outputs[out_index].is_zyphora()) {
+			if (!tokens_active) {
+				retVals.errCode = notYetImplemented; // token input offered before HF21
+				return;
+			}
+			// Rebuild the on-chain output so the plaintext token id, amount,
+			// Pedersen mask and -- crucially -- the token-blinding scalar r can
+			// be recovered locally. r has no other source and is required to
+			// reconstruct T_real when building the pseudo-output.
+			cryptonote::tx_out_zyphora zout{};
+			zout.stealth_address = public_key; // parsed above from outputs[].public_key
+			if (!string_tools::hex_to_pod(*outputs[out_index].amount_commitment, zout.amount_commitment)
+				|| !string_tools::hex_to_pod(*outputs[out_index].blinded_token_id, zout.blinded_token_id)) {
+				retVals.errCode = givenAnInvalidPubKey;
+				return;
+			}
+			zout.encrypted_amount = *outputs[out_index].encrypted_amount;
+			//
+			crypto::key_derivation derivation{};
+			if (!generate_key_derivation(tx_pub_key, sender_account_keys.m_view_secret_key, derivation)) {
+				retVals.errCode = cantGetDecryptedMaskFromRCTHex;
+				return;
+			}
+			uint64_t zy_amount = 0;
+			crypto::token_id zc_token_id{};
+			rct::key zc_amount_mask{}, zc_token_mask{};
+			if (!cryptonote::decode_zyphora_output(
+					sender_account_keys, zout, derivation, internal_output_index,
+					zy_amount, zc_token_id, zc_amount_mask, zc_token_mask)) {
+				// The commitment did not reopen: the output is not ours, or the
+				// server sent inconsistent fields.
+				retVals.errCode = invalidCommitOrMaskOnOutputRCT;
+				return;
+			}
+			// The LWS-supplied token id is only a selection hint; the authority
+			// is what just came out of the output itself.
+			if (outputs[out_index].token_id != none) {
+				crypto::token_id claimed{};
+				if (!string_tools::hex_to_pod(*outputs[out_index].token_id, claimed) || !(claimed == zc_token_id)) {
+					retVals.errCode = invalidCommitOrMaskOnOutputRCT;
+					return;
+				}
+			}
+			if (zy_amount != outputs[out_index].amount) {
+				retVals.errCode = invalidCommitOrMaskOnOutputRCT;
+				return;
+			}
+			src.token_id   = zc_token_id;
+			src.token_mask = zc_token_mask;
+			src.mask       = zc_amount_mask;
+			// The real ring member's own values, not a zeroCommit.
+			src.outputs[real_output_index].second.mask = rct::pk2rct(zout.amount_commitment);
+			//
+			// Third CLSAG-GGX layer: the blinded token id of every ring member,
+			// index-aligned with src.outputs. A native decoy has none on chain;
+			// its slot is filled with its own amount commitment, which is a
+			// well-formed point of unknown discrete log w.r.t. X -- exactly what
+			// a decoy slot needs, and what keeps native outputs usable as decoys
+			// for token inputs (see TOKEN_RING_SIZE in cryptonote_config.h).
+			src.ring_blinded_token_ids.assign(src.outputs.size(), crypto::null_tid);
+			for (size_t j = 0; j < src.outputs.size(); j++) {
+				if (j == real_output_index) {
+					src.ring_blinded_token_ids[j] = zout.blinded_token_id;
+					continue;
+				}
+				const auto decoy_it = _find_decoy_by_global_index(mix_outs, out_index, src.outputs[j].first);
+				if (decoy_it != nullptr && decoy_it->blinded_token_id != none
+					&& !decoy_it->blinded_token_id->empty()) {
+					crypto::token_id decoy_tid{};
+					if (!string_tools::hex_to_pod(*decoy_it->blinded_token_id, decoy_tid)) {
+						retVals.errCode = givenAnInvalidPubKey;
+						return;
+					}
+					src.ring_blinded_token_ids[j] = decoy_tid;
+				} else {
+					src.ring_blinded_token_ids[j] =
+						rct::rct2tid(src.outputs[j].second.mask);
+				}
+			}
+		}
 		// not doing multisig here yet
 		src.multisig_kLRki = rct::multisig_kLRki({rct::zero(), rct::zero(), rct::zero(), rct::zero()});
 		sources.push_back(src);
@@ -688,12 +1076,93 @@ void beldex_transfer_utils::create_transaction(
 	THROW_WALLET_EXCEPTION_IF(to_addrs.size() != sending_amounts.size(),
  							  error::wallet_internal_error,
  							  "Amounts don't match destinations");
+ 	crypto::token_id sending_token_id = crypto::null_tid; // for the token change output
  	for (size_t i = 0; i < to_addrs.size(); ++i) {
  		tx_destination_entry to_dst{};
  		to_dst.addr = to_addrs[i].address;
  		to_dst.amount = sending_amounts[i];
  		to_dst.is_subaddress = to_addrs[i].is_subaddress;
+ 		// HF21: mark this destination as a privacy-token output. Leaving
+ 		// token_id null keeps it an ordinary BDX txout_to_key.
+ 		if (i < destination_token_ids.size() && destination_token_ids[i] != none
+ 			&& !destination_token_ids[i]->empty()) {
+ 			if (!tokens_active) {
+ 				retVals.errCode = notYetImplemented;
+ 				return;
+ 			}
+ 			crypto::token_id dst_tid{};
+ 			if (!string_tools::hex_to_pod(*destination_token_ids[i], dst_tid)) {
+ 				retVals.errCode = givenAnInvalidPubKey;
+ 				return;
+ 			}
+ 			to_dst.token_id = dst_tid;
+ 			sending_token_id = dst_tid;
+ 		}
  		splitted_dsts.push_back(to_dst);
+ 	}
+ 	// HF21: token change goes back to the sender as a further zyphora output.
+ 	// It is accounted separately from `change_amount`, which stays the BDX
+ 	// change -- a token tx spends native inputs for its fee as well.
+ 	if (token_change_amount != 0) {
+ 		if (!tokens_active || sending_token_id == crypto::null_tid) {
+ 			retVals.errCode = notYetImplemented;
+ 			return;
+ 		}
+ 		tx_destination_entry token_change_dst{};
+ 		token_change_dst.addr = sender_account_keys.m_account_address;
+ 		token_change_dst.amount = token_change_amount;
+ 		token_change_dst.token_id = sending_token_id;
+ 		splitted_dsts.push_back(token_change_dst);
+ 	}
+ 	// HF22: a token registration must carry a native output back to the sender
+ 	// for the network's registration collateral, locked for
+ 	// REGISTRATION_COLLATERAL_LOCK_BLOCKS. Consensus checks for exactly this and
+ 	// rejects a registration without it. The lock is an ABSOLUTE height, so it
+ 	// needs the chain tip; without one we cannot build a valid registration and
+ 	// must say so rather than emit a transaction the network will refuse.
+ 	if (token_op != none && token_op->collateral_amount() != 0) {
+ 		if (blockchain_height == 0) {
+ 			retVals.errCode = invalidTokenOperation;
+ 			return;
+ 		}
+ 		tx_destination_entry collateral_dst{};
+ 		collateral_dst.addr = sender_account_keys.m_account_address;
+ 		collateral_dst.amount = token_op->collateral_amount();
+ 		collateral_dst.is_subaddress = false;
+ 		collateral_dst.token_id = crypto::null_tid; // native BDX, not a token output
+ 		// Consensus checks unlock_time >= (daemon's height at validation) +
+ 		// LOCK_BLOCKS. Our height comes from the light wallet server and is
+ 		// already behind by the time we see it, and the chain advances again
+ 		// before the transaction is validated -- so targeting the exact minimum
+ 		// is guaranteed to fail as soon as one block arrives. Overshoot by a
+ 		// margin instead; it only extends an already six-month lock slightly,
+ 		// whereas undershooting makes the transaction unusable.
+ 		collateral_dst.unlock_time = blockchain_height
+ 			+ tokens::REGISTRATION_COLLATERAL_LOCK_BLOCKS
+ 			+ TOKEN_REGISTRATION_UNLOCK_MARGIN_BLOCKS;
+ 		splitted_dsts.push_back(collateral_dst);
+ 	}
+ 	// HF21: a deploy/mint must emit at least MIN_TOKEN_MINT_OUTPUTS zyphora
+ 	// outputs. The chain enforces this so a brand-new token has a ring to hide
+ 	// in from its very first spend -- with a single output there would be
+ 	// nothing to hide among. The padding outputs are zero-amount self-sends:
+ 	// they cost fee and nothing else, and the wallet receives them as its own
+ 	// ring-member candidates. wallet2::create_token_deploy_tx does exactly this.
+ 	if (token_op != none) {
+ 		size_t zy_count = 0;
+ 		for (const auto &d : splitted_dsts) {
+ 			if (d.is_zyphora()) {
+ 				++zy_count;
+ 			}
+ 		}
+ 		for (size_t i = zy_count; i < (size_t)MIN_TOKEN_MINT_OUTPUTS; ++i) {
+ 			tx_destination_entry pad_dst{};
+ 			pad_dst.addr = sender_account_keys.m_account_address;
+ 			pad_dst.amount = 0;
+ 			pad_dst.is_subaddress = false;
+ 			pad_dst.token_id = token_op->token_id;
+ 			splitted_dsts.push_back(pad_dst);
+ 		}
  	}
 	//
 	cryptonote::tx_destination_entry change_dst{};
@@ -732,10 +1201,26 @@ void beldex_transfer_utils::create_transaction(
 	crypto::secret_key tx_key;
 	std::vector<crypto::secret_key> additional_tx_keys;
 	beldex_construct_tx_params tx_params;
-	tx_params.hf_version = 17;
-	tx_params.tx_type = txtype::standard;
+	tx_params.nettype = nettype;
+	tx_params.hf_version = effective_hf_version;
+	if (token_op != none) {
+		// HF21: consensus reads the operation type back out of tx.extra and
+		// requires it to match tx.type, and requires the burn that goes with it.
+		// step1 already folded that burn into fee_amount, so the inputs cover it.
+		tx_params.tx_type    = token_op->tx_type();
+		tx_params.burn_fixed = token_op->burn_amount(effective_hf_version);
+	}
+	else if(isRegister){
+		// std::cout << "Place for register create construct params" << std::endl;
+		tx_params.tx_type = txtype::stake;
+	}
+	else
+		tx_params.tx_type = txtype::standard;
 
-	if(simple_priority == 5){
+	// Flash sets its own burn. It must not overwrite a token operation's, which
+	// is a protocol requirement rather than a priority surcharge -- so token
+	// operations reject flash priority upstream and it is guarded here too.
+	if(simple_priority == 5 && token_op == none){
 		tx_params.burn_fixed   = FLASH_BURN_FIXED;
     	tx_params.burn_percent = FLASH_BURN_TX_FEE_PERCENT_OLD;
 	}
@@ -777,7 +1262,7 @@ void beldex_transfer_utils::create_transaction(
 		retVals.errCode = transactionTooBig;
 		return;
 	}
-	bool use_bulletproofs = !tx.rct_signatures.p.bulletproofs.empty();
+	bool use_bulletproofs = !tx.rct_signatures.p.bulletproofs_plus.empty();
 	THROW_WALLET_EXCEPTION_IF(use_bulletproofs != true, error::wallet_internal_error, "Expected tx use_bulletproofs to equal bulletproof flag");
 	//
 	retVals.tx = tx;
@@ -787,6 +1272,7 @@ void beldex_transfer_utils::create_transaction(
 //
 void beldex_transfer_utils::convenience__create_transaction(
 	Convenience_TransactionConstruction_RetVals &retVals,
+	const boost::optional<master_node_data> &mn_data,
 	const string &from_address_string,
 	const string &sec_viewKey_string,
 	const string &sec_spendKey_string,
@@ -800,7 +1286,13 @@ void beldex_transfer_utils::convenience__create_transaction(
 	vector<RandomAmountOutputs> &mix_outs,
 	use_fork_rules_fn_type use_fork_rules_fn,
 	uint64_t unlock_time,
-	network_type nettype
+	network_type nettype,
+	const vector<boost::optional<string>> &destination_token_ids,
+	uint64_t token_change_amount,
+	uint8_t hf_version,
+	const boost::optional<token_operation_data> &token_op,
+	//! Chain tip, for the registration collateral's absolute unlock height.
+	uint64_t blockchain_height
 ) {
 	retVals.errCode = noError;
 	//
@@ -833,10 +1325,50 @@ void beldex_transfer_utils::convenience__create_transaction(
 	}
 	//
 	std::vector<uint8_t> extra;
+	
+	bool isRegister =false;
+	// mn_data is optional and the send-funds bridge is not the only caller:
+	// serial_bridge's step2 passes none, as does any non-registration send.
+	// Dereferencing it unconditionally aborts on an assertions-enabled build
+	// and reads uninitialised memory on one without.
+	if(mn_data != boost::none && mn_data->contributor_args.addresses.size() ){
+		const master_node_data &data = *mn_data;
+		//extra process
+		cryptonote::account_public_address address = data.contributor_args.addresses[0];
+		// std::cout << " Data.master_node_key : "<< data.master_node_key << std::endl;
+		// std::cout << " Data.signature : "<< data.signature << std::endl;
+		// std::cout << " Data.Contributor size : " << data.contributor_args.addresses.size() << std::endl;
+		// std::cout << " Data.Contributor porsions size : " << data.contributor_args.portions.size() << std::endl;
+		// std::vector<uint8_t> extra_register;
+		cryptonote::add_master_node_contributor_to_tx_extra(extra, address);
+
+        cryptonote::add_master_node_pubkey_to_tx_extra(extra, data.master_node_key);
+
+        cryptonote::add_master_node_register_to_tx_extra(extra, data.contributor_args.addresses, data.contributor_args.portions_for_operator, data.contributor_args.portions, data.time_stamp, data.signature);
+		// std::cout << "extras: " << extra.size() << std::endl;
+		for(auto it : extra)
+		{
+			// std::cout << it <<" ";
+		}
+		isRegister= true;
+	}
+
 	CreateTransactionErrorCode tx_extra__code = _add_pid_to_tx_extra(payment_id_string, extra);
 	if (tx_extra__code != noError) {
 		retVals.errCode = tx_extra__code;
 		return;
+	}
+	// HF21: the token descriptor operation (deploy a new asset). This is the
+	// only place it enters the transaction -- consensus reads the descriptor,
+	// the operation type and the token id back out of tx.extra, so the id the
+	// user was shown is only real once these bytes are here. step1 has already
+	// added an identical field to its own throwaway `extra` so that the fee was
+	// estimated against the true size.
+	if (token_op != none) {
+		if (!cryptonote::add_token_descriptor_operation_to_tx_extra(extra, token_op->tdo)) {
+			retVals.errCode = couldntAddTokenOperationToTXExtra;
+			return;
+		}
 	}
 	bool payment_id_seen = payment_id_string != none; // logically this is true since payment_id_string has passed validation (or we'd have errored)
 	for (const auto& to_addr_info : to_addr_infos) {
@@ -871,6 +1403,7 @@ void beldex_transfer_utils::convenience__create_transaction(
 	TransactionConstruction_RetVals actualCall_retVals;
 	create_transaction(
 		actualCall_retVals,
+		mn_data,isRegister,
 		account_keys, subaddr_account_idx, subaddresses,
 		to_addr_infos,
 		sending_amounts, change_amount, fee_amount,
@@ -878,7 +1411,8 @@ void beldex_transfer_utils::convenience__create_transaction(
 		outputs, mix_outs,
 		extra, // TODO: move to after address
 		use_fork_rules_fn,
-		unlock_time, true/*rct*/, nettype
+		unlock_time, true/*rct*/, nettype,
+		destination_token_ids, token_change_amount, hf_version, token_op, blockchain_height
 	);
 	if (actualCall_retVals.errCode != noError) {
 		retVals.errCode = actualCall_retVals.errCode; // pass-through
