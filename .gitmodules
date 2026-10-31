@@ -1,4 +1,4 @@
 [submodule "contrib/beldex-core-custom"]
 	path = contrib/beldex-core-custom
-	url = git@github.com:TechGoku/beldex-core-custom.git
-	branch = confidential-asset
+	url = https://github.com/Beldex-Coin/beldex-core-custom.git
+	branch = feature-privacy-token
